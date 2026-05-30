@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cashier</title><title style="display:none">أصالة الهرم - الحركة اليومية</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --p:#0d3b6e;--pl:#1a5c9a;--p2:#1d7ec4;
+  --g:#0a7c5c;--gl:#12a678;
+  --bg:#eef2f7;--w:#fff;
+  --t:#1a2535;--tl:#6b7a90;
+  --b:#d5dce8;--b2:#c0cbdb;
+  --err:#c0392b;--warn:#d68910;
+  --sh:0 2px 12px rgba(13,59,110,.10);
+}
+body{
+  font-family:'Cairo',Tahoma,Arial,sans-serif;
+  background:var(--bg);color:var(--t);font-size:14px;direction:rtl;
+  min-height:100vh;padding-bottom:120px;overflow-x:hidden
+}
+/* ===== SETUP SCREEN ===== */
+.setup-screen{
+  position:fixed;inset:0;z-index:600;
+  background:linear-gradient(160deg,#0a2540 0%,#0d3b6e 45%,#0a5c40 100%);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:20px;overflow-y:auto
+}
+.setup-screen.hidden{display:none}
+.ss-logo{
+  width:88px;height:88px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.35);object-fit:cover;
+  box-shadow:0 8px 32px rgba(0,0,0,.35);margin-bottom:12px;background:#fff
+}
+.ss-title{color:#fff;font-size:21px;font-weight:900;text-align:center;margin-bottom:2px}
+.ss-sub{color:rgba(255,255,255,.6);font-size:12px;text-align:center;margin-bottom:22px}
+.ss-card{
+  background:rgba(255,255,255,.11);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.2);border-radius:20px;
+  padding:20px 18px;width:100%;max-width:350px;margin-bottom:14px
+}
+.ss-label{color:rgba(255,255,255,.65);font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:block}
+.ss-inp{
+  width:100%;padding:12px 14px;border-radius:11px;border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.12);color:#fff;font-size:15px;font-weight:700;
+  font-family:'Cairo',sans-serif;direction:rtl;margin-bottom:14px;
+  transition:.2s
+}
+.ss-inp::placeholder{color:rgba(255,255,255,.35)}
+.ss-inp:focus{outline:none;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.18)}
+.ss-inp-num{direction:ltr;text-align:center;font-size:22px;color:#4ade80}
+.ss-inp-num::placeholder{color:rgba(255,255,255,.3);font-size:15px}
+.ss-bal-note{color:rgba(255,255,255,.45);font-size:10px;text-align:center;margin-top:-10px;margin-bottom:6px}
+.ss-btn{
+  width:100%;max-width:350px;padding:15px;border:none;border-radius:14px;
+  background:linear-gradient(135deg,#12a678,#0a7c5c);color:#fff;
+  font-size:16px;font-weight:900;font-family:'Cairo',sans-serif;
+  cursor:pointer;box-shadow:0 6px 24px rgba(10,124,92,.45);transition:.15s
+}
+.ss-btn:active{transform:scale(.97)}
+.ss-eng{display:flex;align-items:center;gap:8px;margin-top:18px;opacity:.55}
+.ss-eng-av{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.3)}
+.ss-eng-txt{color:#fff;font-size:10px}
+/* ===== HEADER ===== */
+.hdr{
+  background:linear-gradient(135deg,var(--p) 0%,var(--pl) 60%,var(--p2) 100%);
+  color:#fff;padding:11px 14px 10px;text-align:center;
+  position:sticky;top:0;z-index:300;box-shadow:0 3px 16px rgba(13,59,110,.35)
+}
+.hdr-logo{font-size:11px;letter-spacing:1px;opacity:.75;margin-bottom:1px;text-transform:uppercase}
+.hdr h1{font-size:18px;font-weight:900;line-height:1.2}
+.hdr .branch{
+  display:inline-block;margin-top:4px;background:rgba(255,255,255,.18);
+  border-radius:20px;padding:2px 12px;font-size:12px;font-weight:600
+}
+/* ===== BOTTOM NAV ===== */
+.bnav{
+  position:fixed;bottom:52px;left:0;right:0;background:#fff;display:flex;
+  border-top:2px solid var(--b);z-index:300;box-shadow:0 -3px 12px rgba(13,59,110,.12)
+}
+.nb{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:7px 4px 6px;cursor:pointer;color:var(--tl);font-size:11px;font-weight:600;
+  border:none;background:none;gap:3px;transition:.2s;font-family:'Cairo',sans-serif;
+  border-top:3px solid transparent
+}
+.nb.on{color:var(--p);border-top-color:var(--p)}
+.nb svg{width:22px;height:22px;stroke-width:2}
+/* ===== SUPPORT BAR ===== */
+.support-bar{
+  position:fixed;bottom:0;left:0;right:0;height:52px;z-index:301;
+  background:linear-gradient(135deg,#0a1f3a 0%,#0d3260 50%,#0a1f3a 100%);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 10px;box-shadow:0 -2px 10px rgba(13,59,110,.4);
+  border-top:1px solid rgba(255,255,255,.08)
+}
+.sb-left{display:flex;align-items:center;gap:8px}
+.sb-right{display:flex;align-items:center;gap:8px}
+.sb-avatar{
+  width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+  object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+.sb-logo{
+  width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.25);
+  object-fit:cover;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+.sb-info{display:flex;flex-direction:column;line-height:1.25}
+.sb-label{font-size:9px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase}
+.sb-name{font-size:10px;color:rgba(255,255,255,.9);font-weight:700}
+.sb-phone{font-size:11px;color:#7dd3fc;font-weight:700;direction:ltr;letter-spacing:.5px}
+/* ===== PAGES ===== */
+.pg{display:none;padding:10px 10px 4px;animation:fadeIn .25s ease}
+.pg.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ===== CARD ===== */
+.card{
+  background:#fff;border-radius:14px;padding:13px 13px 11px;
+  margin-bottom:10px;box-shadow:var(--sh);border:1px solid rgba(213,220,232,.7)
+}
+.card-h{
+  font-size:13px;font-weight:700;color:var(--p);
+  margin-bottom:11px;padding-bottom:8px;border-bottom:2px solid var(--bg);
+  display:flex;align-items:center;gap:6px
+}
+.card-h .ico{
+  width:26px;height:26px;border-radius:8px;
+  background:linear-gradient(135deg,var(--p),var(--p2));
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0
+}
+/* ===== FORM ===== */
+.fg{margin-bottom:9px}
+.fl{display:block;font-size:11px;color:var(--tl);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.fc{
+  width:100%;padding:9px 11px;border:2px solid var(--b);border-radius:9px;
+  font-size:14px;color:var(--t);background:#fff;transition:border-color .2s,box-shadow .2s;
+  font-family:'Cairo',sans-serif;direction:rtl
+}
+.fc:focus{outline:none;border-color:var(--p2);box-shadow:0 0 0 3px rgba(29,126,196,.12)}
+.fc.locked{
+  background:linear-gradient(135deg,#fef3c7,#fffbeb);
+  color:#92400e;border-color:#f59e0b;font-weight:700;cursor:default
+}
+.lock-badge{
+  display:inline-flex;align-items:center;gap:3px;font-size:10px;
+  color:#92400e;background:#fef3c7;border:1px solid #f59e0b;
+  border-radius:10px;padding:2px 8px;margin-top:4px;font-weight:700
+}
+.row2{display:flex;gap:8px}
+.row2 .fg{flex:1;margin-bottom:0}
+/* ===== CASHIER TABLE ===== */
+.ctbl{width:100%;border-collapse:collapse;font-size:13px}
+.ctbl thead tr{background:linear-gradient(135deg,var(--p),var(--pl))}
+.ctbl th{color:#fff;padding:8px 5px;text-align:center;font-size:11px;font-weight:700}
+.ctbl th:first-child{border-radius:8px 0 0 8px}
+.ctbl th:last-child{border-radius:0 8px 8px 0}
+.ctbl td{padding:5px 4px;border-bottom:1px solid var(--bg);text-align:center;vertical-align:middle}
+.ctbl tbody tr:last-child td{border-bottom:none}
+.ctbl tbody tr:nth-child(even){background:#fafbfd}
+.cname{font-weight:700;color:var(--p);font-size:12px;white-space:nowrap;padding:0 6px !important}
+.cinp{
+  width:100%;padding:6px 4px;border:2px solid var(--b);border-radius:7px;
+  text-align:center;font-size:13px;font-family:'Cairo',sans-serif;
+  background:#fff;color:var(--t);transition:.2s
+}
+.cinp:focus{outline:none;border-color:var(--p2);background:#f0f7ff}
+input[type=number].cinp,input[type=number].fc{direction:ltr}
+/* ===== TOTALS ===== */
+.trow{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid var(--bg)}
+.trow:last-child{border-bottom:none}
+.tlbl{font-size:13px;color:var(--t)}
+.tlbl small{font-size:10px;color:var(--tl)}
+.tval{font-weight:700;font-size:14px;color:var(--p);direction:ltr;font-variant-numeric:tabular-nums}
+.tval .unit{font-size:10px;font-weight:600;margin-right:2px}
+.trow.hi{background:linear-gradient(135deg,#e8f4fd,#eaf7f2);border-radius:10px;padding:10px 12px;margin:6px 0;border-bottom:none;border:1px solid rgba(18,166,120,.2)}
+.trow.hi .tlbl{color:var(--p);font-weight:700;font-size:14px}
+.trow.hi .tval{font-size:17px;color:var(--g)}
+.trow.red .tval{color:var(--err)}
+.trow.orange .tval{color:var(--warn)}
+.trow.info .tval{color:var(--tl)}
+/* ===== PAYMENTS ===== */
+.pay-hdr{display:flex;gap:5px;margin-bottom:5px;padding:0 2px}
+.pay-hdr span{font-size:10px;color:var(--tl);font-weight:700;text-align:center}
+.prow{display:flex;gap:5px;margin-bottom:6px}
+.prow input{padding:7px 6px;border:2px solid var(--b);border-radius:7px;font-size:12px;font-family:'Cairo',sans-serif;background:#fff;color:var(--t);transition:.2s}
+.prow input:focus{outline:none;border-color:var(--p2)}
+.pi-no{width:62px;text-align:center !important}
+.pi-desc{flex:1}
+.pi-amt{width:82px;text-align:center;direction:ltr}
+/* ===== BUTTONS ===== */
+.btn{padding:11px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:'Cairo',sans-serif}
+.btn:active{transform:scale(.96);opacity:.88}
+.btn-p{background:linear-gradient(135deg,var(--p),var(--pl));color:#fff;box-shadow:0 4px 12px rgba(13,59,110,.3)}
+.btn-ok{background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;box-shadow:0 4px 12px rgba(10,124,92,.3)}
+.btn-wa{background:linear-gradient(135deg,#1fad5a,#25D366);color:#fff;box-shadow:0 4px 12px rgba(37,211,102,.3)}
+.btn-pdf{background:linear-gradient(135deg,#9b2c2c,var(--err));color:#fff;box-shadow:0 4px 12px rgba(192,57,43,.3)}
+.btn-out{background:#fff;color:var(--p);border:2px solid var(--b2);box-shadow:var(--sh)}
+.btn-warn{background:linear-gradient(135deg,#b7770d,var(--warn));color:#fff}
+.btn-row{display:flex;gap:8px;margin-top:9px}
+.btn-row .btn{flex:1}
+.btn-full{width:100%;margin-top:8px}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:8px}
+/* ===== MULTI IMAGE ===== */
+.img-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.img-thumb-wrap{position:relative;border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--b);aspect-ratio:1}
+.img-thumb-wrap img{width:100%;height:100%;object-fit:cover;}
+.img-del-btn{position:absolute;top:4px;left:4px;background:rgba(192,57,43,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-add-row{display:flex;gap:8px;margin-top:4px}
+.img-add-btn{flex:1;padding:12px 8px;border:2px dashed var(--b2);border-radius:10px;background:var(--bg);color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'Cairo',sans-serif;transition:.2s}
+.img-add-btn:active{border-color:var(--p2);background:#f0f7ff}
+.img-add-btn .ico{font-size:22px}
+/* ===== HISTORY ===== */
+.hitem{background:#fff;border-radius:12px;padding:12px 13px;margin-bottom:9px;box-shadow:var(--sh);cursor:pointer;border-right:4px solid var(--p);display:flex;flex-direction:column;gap:6px;transition:.15s}
+.hitem:active{transform:scale(.98)}
+.hitem-top{display:flex;justify-content:space-between;align-items:center}
+.hdate{font-weight:700;color:var(--p);font-size:14px}
+.hno{font-size:11px;color:var(--tl);background:var(--bg);padding:2px 8px;border-radius:10px;font-weight:700}
+.hsum{display:flex;gap:0;flex-wrap:wrap;margin-top:2px}
+.hchip{font-size:11px;color:var(--tl);background:var(--bg);padding:3px 9px;border-radius:20px;margin-left:5px;margin-bottom:3px;font-weight:600}
+.hchip.green{color:var(--g);background:#e8f7f2}
+.hitem-del{align-self:flex-start;background:none;border:none;color:var(--err);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.hitem-edit{align-self:flex-start;background:none;border:none;color:#1565c0;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.hitem-locked{font-size:12px;color:#aaa;padding:2px 6px;align-self:flex-start}
+.hitem-actions{display:flex;gap:6px;margin-top:6px}
+#edit-mode-banner{display:none;background:#fff3cd;color:#856404;border:1.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin:8px 0 4px;font-size:13px;font-weight:700;text-align:center}
+#edit-mode-banner button{background:#1565c0;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:12px;cursor:pointer;margin-right:8px}
+#edit-mode-banner .cancel-edit-btn{background:#888;}
+#view-mode-banner{display:none;background:#e3f2fd;color:#0d47a1;border:1.5px solid #64b5f6;border-radius:10px;padding:10px 14px;margin:8px 0 4px;font-size:13px;font-weight:700;text-align:center}
+#view-mode-banner button{background:#1565c0;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:12px;cursor:pointer;margin-right:8px}
+#view-mode-banner .vw-edit-btn{background:#2e7d32;}
+#view-mode-banner .vw-close-btn{background:#888;}
+.view-locked{pointer-events:none!important;opacity:0.75;user-select:none}
+.view-locked input,.view-locked select,.view-locked textarea{background:#f1f5f9!important;cursor:not-allowed!important}
+/* ✅ أزرار مستثناة من القفل دائماً */
+.view-locked .btn-always-active{pointer-events:auto!important;opacity:1!important;cursor:pointer!important}
+/* ===== SETTINGS ===== */
+.srow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--bg)}
+.srow:last-child{border-bottom:none}
+.slbl{font-size:13px;color:var(--t);font-weight:600}
+.slbl small{display:block;font-size:11px;color:var(--tl);font-weight:400}
+.sinp{width:140px;padding:8px 10px;border:2px solid var(--b);border-radius:8px;font-size:13px;text-align:center;font-family:'Cairo',sans-serif}
+.sinp:focus{outline:none;border-color:var(--p2)}
+/* ===== CASHIER TOGGLES ===== */
+.ctgl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.ctgl{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;border:2px solid var(--b);border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;color:var(--tl);background:#fafbfd;transition:.2s;font-family:'Cairo',sans-serif}
+.ctgl.on{border-color:var(--p);background:#eaf2ff;color:var(--p)}
+.ctgl input{display:none}
+/* ===== TOAST ===== */
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-10px);background:#1a2535;color:#fff;padding:9px 20px;border-radius:24px;font-size:13px;z-index:999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ===== EMPTY ===== */
+.empty{text-align:center;padding:30px 20px;color:var(--tl);font-size:13px}
+.empty .eico{font-size:40px;margin-bottom:10px}
+/* ===== PROGRESS ===== */
+.progress-overlay{position:fixed;inset:0;background:rgba(13,59,110,.7);z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.progress-overlay.hidden{display:none}
+.progress-box{background:#fff;border-radius:16px;padding:24px 28px;text-align:center;width:240px}
+.progress-title{font-weight:700;color:var(--p);font-size:14px;margin-bottom:10px}
+.progress-bar-wrap{height:8px;background:var(--bg);border-radius:10px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--g),var(--gl));border-radius:10px;transition:width .3s;width:0%}
+.progress-msg{font-size:12px;color:var(--tl);margin-top:8px}
+/* ===== PRINT ===== */
+#parea{display:none}
+#p-img-section{display:none}
+@media print{
+  @page{margin:10mm 8mm;size:A4 portrait}
+  body{padding:0 !important;margin:0}
+  .hdr,.bnav,.support-bar,.setup-screen,.pg,.toast,.progress-overlay{display:none !important}
+  #parea{display:block !important;font-family:Arial,Tahoma,sans-serif;direction:rtl;font-size:9.5pt;padding:0}
+  #p-page1{}
+  /* إظهار قسم الصور خارج parea */
+  #p-img-section{display:block !important;margin:0;padding:0;line-height:0;font-size:0}
+  .pg-break{page-break-before:always;margin:0;padding:0;height:0}
+  .p-img-page{margin:0;padding:0;overflow:hidden;page-break-inside:avoid}
+  /* جداول واضحة */
+  .p-tbl th{font-weight:900}
+  .p-sum-row.bold{font-weight:900;font-size:10.5pt;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px;margin:3px 0}
+  .p-tbl th,.p-tbl td{border:1px solid #666 !important}
+  .p-meta{border-top:2px solid #000 !important;border-bottom:1px solid #000 !important}
+  .p-section-title{border-bottom:2px solid #000 !important}
+}
+.p-co{text-align:center;margin-bottom:4px}
+.p-co h2{font-size:14pt;font-weight:900}
+.p-co .p-br{font-size:11pt;margin-top:2px;font-weight:700}
+.p-co .p-co-line{font-size:8pt;color:#555;margin-top:2px}
+.p-meta{display:flex;justify-content:space-between;font-size:8.5pt;border-top:2px solid #000;border-bottom:1px solid #000;padding:4px 2px;margin:5px 0}
+.p-section-title{font-size:9.5pt;font-weight:900;border-bottom:1px solid #000;padding-bottom:2px;margin:7px 0 4px}
+.p-tbl{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:4px}
+.p-tbl th,.p-tbl td{border:1px solid #999;padding:3.5px 5px;text-align:center}
+.p-tbl th{background:#ddd;font-weight:900}
+.p-tbl tbody tr:nth-child(even){background:#f5f5f5}
+.p-sum-row{display:flex;justify-content:space-between;padding:2.5px 4px;border-bottom:1px dotted #ccc;font-size:9pt}
+.p-sum-row.bold{font-weight:900;font-size:10.5pt;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px;margin:3px 0;background:#eee}
+.p-sum-row.red{color:#900}
+.p-sigs{display:flex;justify-content:space-around;margin-top:12px;font-size:8.5pt;text-align:center}
+.p-note-ok{background:#f0fff4;border:1px solid #68d391;color:#276749}
+.p-note-warn{background:#fffbeb;border:1.5px solid #f6c90e;color:#7b4f00}
+.p-note-none{background:#f7fafc;border:1px solid #cbd5e0;color:#718096}
+.sig-line{width:80px;border-bottom:1px solid #000;margin:18px auto 3px}
+.p-footer{text-align:center;font-size:7.5pt;color:#666;margin-top:8px;border-top:1px dashed #ccc;padding-top:4px}
+.p-img-title{text-align:center;font-weight:900;margin:4px 0;font-size:10pt;border-bottom:1px solid #000;padding-bottom:3px}
+/* 4 images per page: 2x2 grid */
+.p-img-page{margin:0;padding:0;page-break-inside:avoid}
+
+/* ===== LICENSE SCREEN ===== */
+.lic-screen{
+  position:fixed;inset:0;z-index:700;
+  background:linear-gradient(160deg,#1a0a0a 0%,#4a0d0d 50%,#1a0a0a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;overflow-y:auto
+}
+.lic-screen.hidden{display:none}
+.lic-icon{font-size:56px;margin-bottom:10px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.lic-title{color:#fff;font-size:20px;font-weight:900;text-align:center;margin-bottom:4px}
+.lic-sub{color:rgba(255,100,100,.8);font-size:13px;text-align:center;margin-bottom:6px}
+.lic-days{
+  background:rgba(255,50,50,.15);border:1px solid rgba(255,100,100,.3);
+  border-radius:12px;padding:8px 20px;margin-bottom:18px;
+  color:#fca5a5;font-size:12px;font-weight:700;text-align:center
+}
+.lic-card{
+  background:rgba(255,255,255,.08);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.15);border-radius:18px;
+  padding:18px 16px;width:100%;max-width:340px;margin-bottom:14px
+}
+.lic-label{color:rgba(255,255,255,.6);font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:block}
+.lic-device-code{
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);
+  border-radius:10px;padding:10px 12px;
+  color:#fcd34d;font-size:14px;font-weight:900;
+  letter-spacing:2px;text-align:center;direction:ltr;
+  word-break:break-all;cursor:pointer;margin-bottom:4px;
+  font-family:monospace
+}
+.lic-copy-hint{color:rgba(255,255,255,.4);font-size:10px;text-align:center;margin-bottom:14px}
+.lic-inp{
+  width:100%;padding:12px 14px;border-radius:11px;
+  border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.1);color:#fff;font-size:16px;font-weight:700;
+  font-family:monospace;letter-spacing:2px;text-align:center;
+  margin-bottom:8px
+}
+.lic-inp::placeholder{color:rgba(255,255,255,.3);font-size:12px;letter-spacing:0}
+.lic-inp:focus{outline:none;border-color:#fcd34d}
+.lic-btn{
+  width:100%;padding:14px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#b45309,#d97706);color:#fff;
+  font-size:15px;font-weight:900;font-family:'Cairo',sans-serif;
+  cursor:pointer;box-shadow:0 4px 16px rgba(180,83,9,.4);transition:.15s
+}
+.lic-btn:active{transform:scale(.97)}
+.lic-trial-bar{
+  width:100%;max-width:340px;
+  background:rgba(255,255,255,.08);border-radius:10px;
+  padding:10px 14px;text-align:center;margin-bottom:14px
+}
+.lic-trial-days{font-size:28px;font-weight:900;color:#4ade80}
+.lic-trial-label{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+/* Trial warning banner */
+.trial-banner{
+  background:linear-gradient(135deg,#92400e,#b45309);
+  color:#fef3c7;font-size:11px;font-weight:700;
+  text-align:center;padding:5px;position:sticky;top:60px;z-index:299;
+  display:none
+}
+.trial-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     شاشة التفعيل - أصالة الهرم
+     ════════════════════════════════════════════════════════ -->
+
+
+
+<!-- ===== SETUP SCREEN ===== -->
+<div class="setup-screen" id="setup-screen">
+  <img class="ss-logo" id="ss-logo-img" src="data:image/jpeg;base64,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" alt="شعار">
+  <div class="ss-title">شركة أصالة الهرم التجارية</div>
+  <div class="ss-sub">ASALAT ALHARM TRADING CO.</div>
+  <div class="ss-card">
+    <label class="ss-label">📍 اسم الفرع</label>
+    <input type="text" class="ss-inp" id="ss-branch" placeholder="مثال: الفرع الرئيسي">
+    <label class="ss-label">💰 الرصيد الافتتاحي للصندوق (ر.س)</label>
+    <input type="number" class="ss-inp ss-inp-num" id="ss-opening" placeholder="0.00" min="0" step="0.01">
+    <div id="ss-prev-hint" style="display:none;color:#86efac;font-size:11px;text-align:center;margin-top:-8px;margin-bottom:6px;font-weight:600"></div>
+    <div class="ss-bal-note">🔒 بعد الدخول لن يمكن تعديل هذا المبلغ</div>
+  </div>
+  <button class="ss-btn" onclick="submitSetup()">▶️ دخول النظام</button>
+  <div class="ss-eng">
+    <img class="ss-eng-av" id="ss-eng-av" src="data:image/jpeg;base64,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" alt="صلاح">
+    <div class="ss-eng-txt">الدعم الفني: م. صلاح غالب | 0556321436</div>
+  </div>
+</div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay hidden" id="prog-overlay">
+  <div class="progress-box">
+    <div class="progress-title" id="prog-title">⏳ جاري التجهيز...</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+    <div class="progress-msg" id="prog-msg">يرجى الانتظار</div>
+  </div>
+</div>
+
+
+<!-- ===== LICENSE SCREEN ===== -->
+<div class="lic-screen hidden" id="lic-screen">
+  <div class="lic-icon">🔒</div>
+  <div class="lic-title">انتهت صلاحية البرنامج</div>
+  <div class="lic-sub">يرجى التواصل مع المهندس صلاح للتجديد</div>
+  <div class="lic-days" id="lic-expired-info">انتهت الرخصة</div>
+
+  <div class="lic-card">
+    <label class="lic-label">📱 كود جهازك — أرسله للمهندس صلاح</label>
+    <div class="lic-device-code" id="lic-device-code" onclick="copyDeviceCode()">—</div>
+    <div class="lic-copy-hint">اضغط على الكود لنسخه</div>
+    <label class="lic-label">🔑 كود التفعيل</label>
+    <input type="text" class="lic-inp" id="lic-key-inp" placeholder="أدخل كود التفعيل هنا" maxlength="20" oninput="this.value=this.value.toUpperCase()">
+    <button class="lic-btn" onclick="activateLicense()">✅ تفعيل البرنامج</button>
+  </div>
+
+  <div class="lic-eng" style="display:flex;align-items:center;gap:8px;margin-top:16px;opacity:.6">
+    <img style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.3)" src="data:image/jpeg;base64,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" alt="صلاح">
+    <div style="color:#fff;font-size:11px">م. صلاح غالب | 0556321436</div>
+  </div>
+</div>
+
+<!-- Trial warning banner -->
+<div class="trial-banner" id="trial-banner"></div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">ASALAT ALHARM CO.</div>
+  <h1>شركة أصالة الهرم التجارية</h1>
+  <span class="branch" id="hdr-branch">—</span>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- ===== PAGE: ENTRY ===== -->
+<div class="pg on" id="pg-entry">
+  <div id="edit-mode-banner">
+    ✏️ <span id="edit-banner-text">وضع التعديل</span>
+    <button onclick="saveEditRecord()">💾 حفظ التعديل</button>
+    <button class="cancel-edit-btn" onclick="cancelEditMode()">✕ إلغاء</button>
+  </div>
+  <div id="view-mode-banner">
+    👁️ <span id="view-banner-text">عرض سجل</span>
+    <button class="vw-edit-btn" id="view-edit-btn" onclick="editFromView()">✏️ تعديل</button>
+    <button class="vw-close-btn" onclick="closeViewMode()">✕ إغلاق</button>
+  </div>
+  <div class="card">
+    <div class="card-h"><span class="ico">📋</span> معلومات الحركة اليومية</div>
+    <div class="row2">
+      <div class="fg">
+        <label class="fl">التاريخ</label>
+        <input type="date" class="fc" id="inp-date" onchange="onDateChange(true)" onfocus="refreshDateMax()">
+      </div>
+      <div class="fg" style="max-width:115px">
+        <label class="fl">رقم السند</label>
+        <input type="text" class="fc" id="inp-invno" readonly style="text-align:center;font-weight:700;font-size:15px;color:var(--p)">
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl">💰 الرصيد الافتتاحي للصندوق</label>
+      <input type="text" class="fc locked" id="inp-prev" readonly>
+      <div class="lock-badge">🔒 مُدخَل عند بداية الجلسة — غير قابل للتعديل</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">🖥️</span> مبيعات الكاشيرات</div>
+    <table class="ctbl">
+      <thead><tr>
+        <th style="width:20%">الكاشير</th>
+        <th style="width:40%">💵 نقدي (ر.س)</th>
+        <th style="width:40%">💳 شبكة (ر.س)</th>
+      </tr></thead>
+      <tbody id="cashier-rows"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">📊</span> المجاميع التلقائية</div>
+    <div class="trow info"><span class="tlbl">إجمالي الشبكة <small>(للمعلومات فقط)</small></span><span class="tval" id="t-net">0.00 <span class="unit">ر.س</span></span></div>
+    <div class="trow"><span class="tlbl">إجمالي مبيعات النقد</span><span class="tval" id="t-cash">0.00 <span class="unit">ر.س</span></span></div>
+    <div class="trow"><span class="tlbl">الرصيد الافتتاحي (+)</span><span class="tval" id="t-prev">0.00 <span class="unit">ر.س</span></span></div>
+    <div class="trow" style="color:var(--p2)"><span class="tlbl" style="color:var(--p2)">إضافات للصندوق (+)</span><span class="tval" id="t-add-ref" style="color:var(--p2)">0.00 <span class="unit">ر.س</span></span></div>
+    <div class="trow hi"><span class="tlbl">الإجمالي الكلي في الصندوق</span><span class="tval" id="t-grand">0.00 <span class="unit">ر.س</span></span></div>
+  </div>
+
+
+  <!-- ADDITIONS CARD -->
+  <div class="card" id="add-card">
+    <div class="card-h"><span class="ico">➕</span> إضافات للصندوق</div>
+    <div class="row2" style="align-items:flex-end">
+      <div class="fg" style="flex:2">
+        <label class="fl">البيان / السبب</label>
+        <input type="text" class="fc" id="inp-add-desc" placeholder="مثال: فائض من أمس، مبلغ إضافي...">
+      </div>
+      <div class="fg" style="flex:1">
+        <label class="fl">المبلغ (ر.س)</label>
+        <input type="number" class="fc" id="inp-add-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()" style="text-align:center;direction:ltr">
+      </div>
+    </div>
+    <div class="trow" style="margin-top:4px;background:#f0f7ff;border-radius:8px;padding:8px 10px">
+      <span class="tlbl" style="color:var(--p2);font-weight:700">➕ إجمالي الإضافات</span>
+      <span class="tval" id="t-add" style="color:var(--p2)">0.00 <span class="unit">ر.س</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">💸</span> المدفوعات من الصندوق</div>
+    <div class="pay-hdr">
+      <span style="width:62px">رقم السند</span>
+      <span style="flex:1;text-align:right;padding-right:4px">البيان / التفاصيل</span>
+      <span style="width:82px">المبلغ</span>
+    </div>
+    <div id="payment-rows"></div>
+    <div class="trow red" style="margin-top:4px"><span class="tlbl">إجمالي المدفوعات (-)</span><span class="tval" id="t-pay">0.00 <span class="unit">ر.س</span></span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">🏦</span> الإيداع والرصيد النهائي</div>
+    <div class="fg">
+      <label class="fl">مبلغ الإيداع البنكي (-)</label>
+      <input type="number" class="fc" id="inp-dep" placeholder="0.00" min="0" step="0.01" oninput="calc()">
+    </div>
+    <div class="trow orange"><span class="tlbl">إجمالي الخارج من الصندوق</span><span class="tval" id="t-out">0.00 <span class="unit">ر.س</span></span></div>
+    <div class="trow hi" style="border:2px solid rgba(10,124,92,.25);margin-top:6px">
+      <span class="tlbl">✅ الرصيد الباقي في الصندوق</span>
+      <span class="tval" id="t-final" style="font-size:19px">0.00 <span class="unit">ر.س</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">📷</span> صور الإيصالات والمستندات</div>
+    <div class="img-grid" id="img-grid"><div style="color:var(--tl);font-size:12px;text-align:center;padding:12px;grid-column:span 2">لا توجد صور مضافة</div></div>
+    <div class="img-add-row">
+      <button class="img-add-btn" onclick="openCameraOrFile()"><span class="ico">📸</span><span>التقاط صورة</span></button>
+      <button class="img-add-btn" onclick="document.getElementById('img-gal').click()"><span class="ico">🖼️</span><span>من المعرض</span></button>
+    </div>
+    <input type="file" id="img-cam" accept="image/*" capture="camera" style="display:none" onchange="addImageFromInput(event)">
+    <input type="file" id="img-gal" accept="image/*" style="display:none" onchange="addImageFromInput(event)">
+    <!-- trigger مخصص للكاميرا في APK — يُسجِّل filePathCallback عبر onShowFileChooser -->
+    <input type="file" id="img-cam-trigger" accept="image/*" style="display:none" onchange="addImageFromInput(event)">
+  </div>
+
+  <div class="card">
+    <div class="btn-row">
+      <button class="btn btn-ok" onclick="saveRecord()" style="flex:2">💾 حفظ السجل</button>
+      <button class="btn btn-always-active" onclick="newEntry()" style="flex:0.8;background:linear-gradient(135deg,#4a5568,#718096);color:#fff;box-shadow:0 4px 12px rgba(74,85,104,.3)">🆕 جديد</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-pdf btn-always-active" onclick="printPDF()" style="flex:1">🖨️ طباعة PDF</button>
+      <button class="btn btn-wa btn-always-active" onclick="shareWAasPDF()" id="btn-wa" style="flex:1">📲 WhatsApp PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: HISTORY ===== -->
+<div class="pg" id="pg-hist">
+  <div class="card">
+    <div class="card-h"><span class="ico">📅</span> سجل الحركات اليومية</div>
+    <div id="hist-list"><div class="empty"><div class="eico">📭</div>لا توجد سجلات محفوظة</div></div>
+  </div>
+</div>
+
+<!-- ===== PAGE: SETTINGS ===== -->
+<div class="pg" id="pg-set">
+  <div class="card">
+    <div class="card-h"><span class="ico">⚙️</span> إعدادات الفرع</div>
+    <div class="srow">
+      <div class="slbl">اسم الفرع<small>يظهر في رأس الفاتورة</small></div>
+      <input type="text" class="sinp" id="set-branch" placeholder="اسم الفرع">
+    </div>
+    <div class="srow">
+      <div class="slbl">بداية ترقيم السندات<small>رقم السند الأول</small></div>
+      <input type="number" class="sinp" id="set-invstart" placeholder="1000">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="ico">🖥️</span> الكاشيرات النشطة</div>
+    <p style="font-size:12px;color:var(--tl);line-height:1.5">اختر الكاشيرات التي تعمل في فرعك.</p>
+    <div class="ctgl-grid" id="cashier-toggles"></div>
+  </div>
+
+  <div class="card">
+    <button class="btn btn-ok btn-full" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card">
+    <div class="card-h"><span class="ico">💾</span> النسخ الاحتياطي</div>
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="exportBackup()" style="flex:1">📤 تصدير البيانات</button>
+      <button class="btn btn-out" onclick="document.getElementById('imp-inp').click()" style="flex:1">📥 استرداد النسخة</button>
+    </div>
+    <input type="file" id="imp-inp" accept=".json" style="display:none" onchange="importBackup(event)">
+    <p style="font-size:11px;color:var(--tl);text-align:center;margin-top:8px">التصدير يشمل جميع السجلات والإعدادات</p>
+  </div>
+
+  <div class="card">
+    <div class="card-h" style="color:var(--err)"><span class="ico" style="background:linear-gradient(135deg,#9b2c2c,var(--err))">⚠️</span> منطقة الخطر</div>
+    <button class="btn btn-full" style="background:linear-gradient(135deg,#9b2c2c,var(--err));color:#fff" onclick="clearAll()">🗑️ مسح جميع البيانات</button>
+    <p style="font-size:11px;color:var(--tl);text-align:center;margin-top:7px">تحذير: هذا الإجراء لا يمكن التراجع عنه</p>
+  </div>
+</div>
+
+<!-- ===== PRINT AREA ===== -->
+<div id="parea">
+  <div id="p-page1">
+    <div class="p-co">
+      <h2>شركة أصالة الهرم التجارية</h2>
+      <div class="p-br" id="p-branch"></div>
+      <div class="p-co-line">ASALAT ALHARM TRADING CO.</div>
+    </div>
+    <div class="p-meta">
+      <span>رقم السند: <strong id="p-invno"></strong></span>
+      <span style="font-weight:700">الحركة اليومية للصندوق</span>
+      <span>التاريخ: <strong id="p-date"></strong></span>
+    </div>
+    <div class="p-section-title">📊 مبيعات الكاشيرات</div>
+    <table class="p-tbl">
+      <thead><tr><th style="width:20%">الكاشير</th><th>البيان</th><th style="width:25%">نقدي (ر.س)</th><th style="width:25%">شبكة (ر.س)</th></tr></thead>
+      <tbody id="p-cashier-rows"></tbody>
+      <tfoot><tr style="background:#eee;font-weight:900"><td colspan="2">الإجمالي</td><td id="pf-cash"></td><td id="pf-net"></td></tr></tfoot>
+    </table>
+    <!-- ✅ ملاحظة تلقائية -->
+    <div id="p-note-section" style="margin:5px 0 4px;padding:4px 6px;border-radius:4px;font-size:8.5pt">
+      <div style="font-weight:900;font-size:9pt;margin-bottom:2px">📝 ملاحظة:</div>
+      <div id="p-note-text"></div>
+    </div>
+    <div class="p-section-title">💹 ملخص الصندوق</div>
+    <div class="p-sum-row"><span>إجمالي مبيعات النقد</span><span id="ps-cash"></span></div>
+    <div class="p-sum-row"><span>إجمالي الشبكة (للمعلومات)</span><span id="ps-net"></span></div>
+    <div class="p-sum-row" style="border-top:1px dashed #aaa;padding-top:4px"><span>إجمالي المبيعات نقد + شبكة (للمعلومات)</span><span id="ps-total-sales"></span></div>
+    <div class="p-sum-row"><span>الرصيد الافتتاحي (+)</span><span id="ps-prev"></span></div>
+    <div class="p-sum-row" id="ps-add-row" style="display:none"><span id="ps-add-label">إضافات (+)</span><span id="ps-add"></span></div>
+    <div class="p-sum-row bold"><span>الإجمالي الكلي في الصندوق</span><span id="ps-grand"></span></div>
+    <div class="p-section-title">💸 المدفوعات</div>
+    <table class="p-tbl">
+      <thead><tr><th style="width:20%">رقم السند</th><th>البيان</th><th style="width:25%">المبلغ (ر.س)</th></tr></thead>
+      <tbody id="p-pay-rows"></tbody>
+    </table>
+    <div class="p-sum-row red"><span>إجمالي المدفوعات (-)</span><span id="ps-pay"></span></div>
+    <div class="p-sum-row red"><span>مبلغ الإيداع البنكي (-)</span><span id="ps-dep"></span></div>
+    <div class="p-sum-row red"><span>إجمالي الخارج</span><span id="ps-out"></span></div>
+    <div class="p-sum-row bold"><span>✅ الرصيد الباقي في الصندوق</span><span id="ps-final"></span></div>
+    <div class="p-sigs">
+      <div><div class="sig-line"></div>أمين الصندوق</div>
+      <div><div class="sig-line"></div>المحاسب</div>
+      <div><div class="sig-line"></div>المدير المالي</div>
+      <div><div class="sig-line"></div>المدير العام</div>
+    </div>
+    <div class="p-footer">الدعم الفني: م. صلاح غالب | 0556321436 | شركة أصالة الهرم التجارية</div>
+  </div>
+</div>
+<!-- Page 2+ for images: OUTSIDE parea to avoid padding interference -->
+<div id="p-img-section"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="nb on" id="nb-entry" onclick="showPage('entry',0)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+    إدخال
+  </button>
+  <button class="nb" id="nb-hist" onclick="showPage('hist',1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    السجلات
+  </button>
+  <button class="nb" id="nb-set" onclick="showPage('set',2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    الإعدادات
+  </button>
+</div>
+
+<!-- SUPPORT BAR -->
+<div class="support-bar">
+  <div class="sb-left">
+    <img class="sb-avatar" id="sb-eng-photo" src="data:image/jpeg;base64,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" alt="صلاح">
+    <div class="sb-info">
+      <span class="sb-label">الدعم الفني</span>
+      <span class="sb-name">م. صلاح غالب</span>
+      <span class="sb-phone">0556321436</span>
+    </div>
+  </div>
+  <div class="sb-right">
+    <img class="sb-logo" id="sb-logo" src="data:image/jpeg;base64,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" alt="أصالة الهرم">
+  </div>
+</div>
+
+<script>
+
+// ============================================================
+// LICENSE SYSTEM
+// ============================================================
+const LICENSE_SECRET = 'ASL@H#2024$GL';  // shared secret (same in generator)
+const TRIAL_DAYS = 365;
+
+function getDeviceId(){
+  let did = _storageGet('asalat_device_id');
+  if(!did){
+    did = 'DEV-' + Math.random().toString(36).substr(2,6).toUpperCase()
+        + '-' + Math.random().toString(36).substr(2,6).toUpperCase()
+        + '-' + Date.now().toString(36).toUpperCase();
+    _storageSet('asalat_device_id', did);
+  }
+  return did;
+}
+
+function getFirstRun(){
+  let fr = _storageGet('asalat_first_run');
+  if(!fr){
+    fr = Date.now().toString();
+    _storageSet('asalat_first_run', fr);
+  }
+  return parseInt(fr);
+}
+
+function getLicenseYear(){
+  // How many full years since first run (1=first year free, 2=second year, ...)
+  const fr = getFirstRun();
+  const now = Date.now();
+  const diffDays = (now - fr) / (1000*60*60*24);
+  return Math.floor(diffDays / TRIAL_DAYS) + 1; // year number (1-based)
+}
+
+function getDaysRemaining(){
+  const fr = getFirstRun();
+  const now = Date.now();
+  const diffDays = (now - fr) / (1000*60*60*24);
+  const yearNum = Math.floor(diffDays / TRIAL_DAYS);
+  const dayInCurYear = diffDays - yearNum * TRIAL_DAYS;
+  return Math.ceil(TRIAL_DAYS - dayInCurYear);
+}
+
+// Simple hash: SHA-like deterministic string from input
+function simpleHash(str){
+  let hash = 0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    hash ^= str.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return hash.toString(36).toUpperCase().padStart(7,'0');
+}
+
+function generateDeviceCode(){
+  const did = getDeviceId();
+  const yr = getLicenseYear();
+  const raw = did + '|YR' + yr + '|' + LICENSE_SECRET;
+  return simpleHash(raw).substr(0,4) + '-' + simpleHash(raw.split('').reverse().join('')).substr(0,4);
+}
+
+function generateActivationKey(deviceCode){
+  // Generator app uses this same logic
+  const raw = deviceCode + '|ACT|' + LICENSE_SECRET;
+  const h1 = simpleHash(raw);
+  const h2 = simpleHash(raw + h1);
+  return h1.substr(0,4) + '-' + h2.substr(0,4);
+}
+
+function getActivatedYear(){
+  return parseInt(_storageGet('asalat_activated_year')||'0');
+}
+
+function checkLicense(){
+  const yr = getLicenseYear();
+  if(yr === 1) return {ok:true, trial:true, daysLeft: getDaysRemaining()};
+  // For year 2+, check if this year is activated
+  const actYr = getActivatedYear();
+  if(actYr >= yr) return {ok:true, trial:false, daysLeft: getDaysRemaining()};
+  return {ok:false, trial:false, daysLeft:0};
+}
+
+function showLicenseScreen(){
+  const devCode = generateDeviceCode();
+  document.getElementById('lic-device-code').textContent = devCode;
+  const yr = getLicenseYear();
+  document.getElementById('lic-expired-info').textContent =
+    'انتهت السنة ' + (yr-1) + ' — يلزم تجديد السنة ' + yr;
+  document.getElementById('lic-screen').classList.remove('hidden');
+}
+
+function copyDeviceCode(){
+  const code = document.getElementById('lic-device-code').textContent;
+  navigator.clipboard?.writeText(code).then(()=>toast('📋 تم نسخ الكود'))
+    .catch(()=>{
+      // fallback
+      const ta=document.createElement('textarea');
+      ta.value=code;document.body.appendChild(ta);ta.select();
+      document.execCommand('copy');document.body.removeChild(ta);
+      toast('📋 تم نسخ الكود');
+    });
+}
+
+function activateLicense(){
+  const entered = document.getElementById('lic-key-inp').value.trim().toUpperCase();
+  const devCode = generateDeviceCode();
+  const expected = generateActivationKey(devCode);
+  if(entered === expected){
+    const yr = getLicenseYear();
+    _storageSet('asalat_activated_year', yr.toString());
+    document.getElementById('lic-screen').classList.add('hidden');
+    document.getElementById('lic-key-inp').value='';
+    toast('✅ تم التفعيل! أهلاً بك في السنة '+yr);
+    // Resume normal init
+    if(!settings.branchName){
+      document.getElementById('setup-screen').classList.remove('hidden');
+    } else {
+      if(records.length>0){
+        const lastRec=[...records].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+        sessionOpeningBalance=parseFloat(lastRec.finalBalance||0);
+      }
+      applyOpeningBalance();refreshDateMax();onDateChange();
+    }
+  } else {
+    toast('❌ كود التفعيل غير صحيح','err');
+    document.getElementById('lic-key-inp').style.borderColor='var(--err)';
+    setTimeout(()=>document.getElementById('lic-key-inp').style.borderColor='',1500);
+  }
+}
+
+function showTrialBanner(daysLeft){
+  const banner = document.getElementById('trial-banner');
+  if(daysLeft <= 30){
+    banner.textContent = '⚠️ تنبيه: متبقي ' + daysLeft + ' يوم على انتهاء الرخصة — تواصل مع م. صلاح 0556321436';
+    banner.classList.add('show');
+  }
+}
+
+// ============================================================
+// STATE
+// ============================================================
+const DEF_SETTINGS = {
+  branchName: '',
+  activeCashiers: [1,2,3,4],
+  invoiceNo: 1000
+};
+let settings = Object.assign({}, DEF_SETTINGS);
+let records = [];
+let editingRecordId = null; // معرّف السجل الذي يجري تعديله حالياً
+let posImages = [];
+let sessionOpeningBalance = 0; // locked per session, never persisted
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){
+  loadFromStorage();
+  // ✅ إعادة حساب كامل للسلسلة عند الفتح (يصلح أي بيانات قديمة مخزنة بشكل خاطئ)
+  if(records && records.length > 0){
+    const earliest = [...records].sort((a,b)=>a.date.localeCompare(b.date))[0];
+    rechainRecords(earliest.date);
+  }
+  // Check license FIRST
+  const lic = checkLicense();
+  if(!lic.ok){
+    showLicenseScreen();
+    return; // stop init until activated
+  }
+  showTrialBanner(lic.daysLeft);
+  setTodayDate();
+  updateHeader();
+  renderCashierRows();
+  renderPaymentRows();
+  renderCashierToggles();
+  loadSettingsUI();
+  renderHistory();
+  renderImages();
+  updateInvoiceNo();
+  if(!settings.branchName){
+    // First time ever — show setup screen
+    document.getElementById('setup-screen').classList.remove('hidden');
+  } else {
+    // Already configured — auto-enter, carry previous balance
+    document.getElementById('setup-screen').classList.add('hidden');
+    // Carry last day's final balance as opening balance
+    if(records.length > 0){
+      const lastRec = [...records].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+      sessionOpeningBalance = parseFloat(lastRec.finalBalance||0);
+    } else {
+      sessionOpeningBalance = 0;
+    }
+    applyOpeningBalance();
+    refreshDateMax();
+    onDateChange();
+  }
+}
+
+// ============================================================
+// DATE CHANGE — smart per-date data loading
+// ============================================================
+function onDateChange(userTriggered){
+  const date = document.getElementById('inp-date').value;
+  if(!date) return;
+  // ✅ منع التاريخ المستقبلي
+  const t = new Date(); t.setHours(0,0,0,0);
+  const sel = new Date(date + 'T00:00:00');
+  if(sel > t){
+    const y=t.getFullYear(), m=String(t.getMonth()+1).padStart(2,'0'), d=String(t.getDate()).padStart(2,'0');
+    document.getElementById('inp-date').value = `${y}-${m}-${d}`;
+    toast('⚠️ لا يمكن اختيار تاريخ مستقبلي','warn');
+    return;
+  }
+  // في وضع التعديل: تحديث الرصيد الافتتاحي حسب التاريخ الجديد
+  if(editingRecordId){
+    const conflict = records.find(r => r.date === date && r.id !== editingRecordId);
+    if(conflict){
+      toast(`⚠️ يوجد سجل بتاريخ ${formatDateAr(date)} — احذفه أولاً إن أردت النقل`,'warn');
+    }
+    document.getElementById('edit-banner-text').textContent = 'تعديل سجل → ' + formatDateAr(date);
+    // ✅ إعادة حساب الرصيد الافتتاحي حسب التاريخ الجديد (استثناء السجل الحالي)
+    sessionOpeningBalance = getPrevDayBalance(date, editingRecordId);
+    applyOpeningBalance();
+    calc();
+    return;
+  }
+  // ✅ منع تاريخ أقدم من 3 أيام في وضع الإدخال الجديد (ليس التعديل)
+  const diffDays = Math.round((t - sel) / 86400000);
+  if(diffDays > 3){
+    // أعد التاريخ لليوم
+    const y2=t.getFullYear(), m2=String(t.getMonth()+1).padStart(2,'0'), d2=String(t.getDate()).padStart(2,'0');
+    document.getElementById('inp-date').value = `${y2}-${m2}-${d2}`;
+    // رسالة توضيحية تظهر 3 ثوان
+    toastTimed(
+      '🔒 لا يمكن إدخال بيانات لتاريخ أقدم من 3 أيام — ' +
+      'ادخل إلى السجلات، اختر اليوم المطلوب ثم اضغط "تعديل"',
+      'warn', 3000
+    );
+    onDateChange(); // أعد تحميل بيانات اليوم
+    return;
+  }
+
+  const existing = records.find(r => r.date === date);
+  if(existing && userTriggered){
+    // ✅ سجل موجود وقد اختاره المستخدم يدوياً: افتحه في وضع العرض
+    _viewingRecordId = existing.id;
+    _fillFormFromRec(existing);
+    document.getElementById('pg-entry').classList.add('view-locked');
+    document.getElementById('edit-mode-banner').style.display='none';
+    const vmb = document.getElementById('view-mode-banner');
+    vmb.style.display = 'block';
+    document.getElementById('view-banner-text').textContent =
+      `عرض سجل — ${formatDateEn(existing.date)} — سند #${String(existing.invNo||0).padStart(6,'0')}`;
+    const editBtn = document.getElementById('view-edit-btn');
+    editBtn.style.display = canEditRecord(existing.date) ? 'inline-block' : 'none';
+    toastTimed(
+      '👁️ هذا اليوم مسجل بالفعل — للتعديل اضغط زر "تعديل" في الشريط الأزرق',
+      'warn', 3000
+    );
+  } else if(existing && !userTriggered){
+    // عند init: حمّل البيانات بهدوء بدون وضع عرض
+    _fillFormFromRec(existing);
+  } else {
+    // تاريخ جديد: نظّف النموذج واحسب الرصيد
+    clearFormFields();
+    const prevBal = getPrevDayBalance(date);
+    sessionOpeningBalance = prevBal;
+    applyOpeningBalance();
+    updateInvoiceNo();
+    if(prevBal > 0){
+      toast('🔄 رصيد منقول: ' + n(prevBal) + ' ر.س');
+    } else {
+      toast('📋 تاريخ جديد — أدخل البيانات');
+    }
+  }
+}
+
+function getPrevDayBalance(date, excludeId){
+  // Get finalBalance from the most recent record BEFORE this date
+  const prev = records
+    .filter(r => r.date < date && r.id !== excludeId)
+    .sort((a,b) => b.date.localeCompare(a.date));
+  if(prev.length > 0) return parseFloat(prev[0].finalBalance) || 0;
+  // Fall back to persisted global opening balance or session value
+  return parseFloat(settings.globalOpeningBalance) || sessionOpeningBalance || 0;
+}
+
+// ============================================================
+// RECHAIN — يُعيد حساب الرصيد التراكمي لكل السجلات من تاريخ محدد فصاعداً
+// يُستدعى تلقائياً بعد كل حفظ أو تعديل أو نقل تاريخ
+// ============================================================
+function rechainRecords(fromDate){
+  // ترتيب كل السجلات تصاعدياً حسب التاريخ
+  const sorted = [...records].sort((a,b) => a.date.localeCompare(b.date));
+  // ✅ نبدأ دائماً من الأول (index 0) لضمان صحة التسلسل الكامل
+  // fromDate يُستخدم فقط كمرجع — لا نتوقف عنده
+  const globalOpening = parseFloat(settings.globalOpeningBalance) || 0;
+
+  for(let i = 0; i < sorted.length; i++){
+    const r = sorted[i];
+    // الرصيد الافتتاحي = الرصيد النهائي للسجل السابق، أو الرصيد الافتتاحي العام
+    // sorted[i] هو reference للكائن المُحدَّث في الحلقة السابقة (shallow copy)
+    const openingBal = i === 0
+      ? globalOpening
+      : (parseFloat(sorted[i-1].finalBalance) || 0);
+
+    // إعادة حساب الإجماليات من بيانات السجل الأصلية
+    const totalCash   = (r.cashiers||[]).reduce((s,c) => s + (parseFloat(c.cash)||0), 0);
+    const totalNet    = (r.cashiers||[]).reduce((s,c) => s + (parseFloat(c.network)||0), 0);
+    const addAmt      = parseFloat(r.additionAmt) || 0;
+    const grandTotal  = openingBal + totalCash + addAmt;
+    const totalPay    = (r.payments||[]).reduce((s,p) => s + (parseFloat(p.amount)||0), 0);
+    const dep         = parseFloat(r.deposit) || 0;
+    const totalOut    = totalPay + dep;
+    const finalBal    = grandTotal - totalOut;
+
+    // ✅ تحديث مباشر على نفس الكائن المرجعي (sorted و records يشيران لنفس الكائنات)
+    r.openingBalance = openingBal;
+    r.grandTotal     = grandTotal;
+    r.totalCash      = totalCash;
+    r.totalNetwork   = totalNet;
+    r.totalOut       = totalOut;
+    r.finalBalance   = finalBal;
+  }
+  saveToStorage();
+  renderHistory();
+}
+
+function clearFormFields(){
+  (settings.activeCashiers||[]).forEach(num=>{
+    const c=document.getElementById(`c${num}-cash`);
+    const ne=document.getElementById(`c${num}-net`);
+    if(c) c.value=''; if(ne) ne.value='';
+  });
+  for(let i=1;i<=5;i++){
+    ['no','desc','amt'].forEach(k=>{
+      const el=document.getElementById(`p${i}-${k}`); if(el) el.value='';
+    });
+  }
+  document.getElementById('inp-dep').value='';
+  document.getElementById('inp-add-desc').value='';
+  document.getElementById('inp-add-amt').value='';
+  posImages=[];
+  renderImages();
+  calc();
+}
+
+function fillFormFromRecord(r){
+  document.getElementById('inp-invno').value = String(r.invNo||0).padStart(6,'0');
+  document.getElementById('inp-dep').value = (r.deposit||0).toFixed(2);
+  document.getElementById('inp-add-desc').value = r.additionDesc||'';
+  document.getElementById('inp-add-amt').value = (r.additionAmt||0)||'';
+  // ✅ الرصيد الافتتاحي الصحيح = الرصيد النهائي للسجل السابق (وليس القيمة المخزنة)
+  sessionOpeningBalance = getPrevDayBalance(r.date, r.id);
+  applyOpeningBalance();
+
+  // ── إعادة بناء صفوف الكاشيرات بناءً على السجل المُحمَّل ─────────────
+  // هذا يحل مشكلة ظهور كاشيرات تاريخ آخر عند تحميل سجل قديم
+  if(r.cashiers && r.cashiers.length > 0){
+    const recordCashierIds = r.cashiers.map(c=>c.id);
+    const tbody = document.getElementById('cashier-rows');
+    tbody.innerHTML = '';
+    [...recordCashierIds].sort((a,b)=>a-b).forEach(num=>{
+      tbody.innerHTML += `<tr>
+        <td class="cname">كاشير<br>${num}</td>
+        <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+        <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+      </tr>`;
+    });
+    // ملء القيم
+    r.cashiers.forEach(c=>{
+      const ce=document.getElementById(`c${c.id}-cash`);
+      const ne=document.getElementById(`c${c.id}-net`);
+      if(ce) ce.value = c.cash||'';
+      if(ne) ne.value = c.network||'';
+    });
+  } else {
+    // لا يوجد كاشيرات في السجل — استخدم الإعدادات الحالية
+    renderCashierRows();
+  }
+  // Clear then fill payments
+  for(let i=1;i<=5;i++){
+    document.getElementById(`p${i}-no`).value='';
+    document.getElementById(`p${i}-desc`).value='';
+    document.getElementById(`p${i}-amt`).value='';
+  }
+  (r.payments||[]).forEach((p,i)=>{
+    if(i>=5) return;
+    document.getElementById(`p${i+1}-no`).value=p.no||'';
+    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
+    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
+  });
+  posImages = r.images ? [...r.images] : [];
+  renderImages();
+  calc();
+  // ✅ تحويل كل الأرقام إلى إنجليزية بعد التحميل البرمجي
+  setTimeout(toEnglishAllInputs, 30);
+}
+
+function autoSave(){
+  const date = document.getElementById('inp-date').value;
+  if(!date) return;
+  const vals = calc();
+  const invNo = parseInt(document.getElementById('inp-invno').value)||settings.invoiceNo;
+  const cashiers=[];
+  // نحفظ الكاشيرات الظاهرة فعلاً في الجدول
+  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
+    const cashEl = row.querySelector('[id$="-cash"]');
+    const netEl  = row.querySelector('[id$="-net"]');
+    if(cashEl){
+      const idMatch = cashEl.id.match(/^c(\d+)-cash$/);
+      if(idMatch){
+        cashiers.push({
+          id: parseInt(idMatch[1]),
+          cash: parseFloat(cashEl.value)||0,
+          network: parseFloat(netEl?.value)||0
+        });
+      }
+    }
+  });
+  const payments=[];
+  for(let i=1;i<=5;i++){
+    const no=document.getElementById(`p${i}-no`)?.value||'';
+    const desc=document.getElementById(`p${i}-desc`)?.value||'';
+    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    if(no||desc||amt) payments.push({no,desc,amount:amt});
+  }
+  const record={
+    id: records.find(r=>r.date===date)?.id || Date.now(),
+    invNo, date,
+    branchName:settings.branchName,
+    openingBalance:vals.prev,
+    additionDesc:document.getElementById('inp-add-desc')?.value||'',
+    additionAmt:vals.addAmt,
+    cashiers, payments,
+    deposit:vals.dep,
+    totalCash:vals.totalCash, totalNetwork:vals.totalNet,
+    grandTotal:vals.grandTotal, totalPayments:vals.totalPay,
+    totalOut:vals.totalOut, finalBalance:vals.finalBal,
+    images:[...posImages]
+  };
+  const existIdx = records.findIndex(r=>r.date===date);
+  if(existIdx>=0){ records[existIdx]=record; }
+  else { records.push(record); settings.invoiceNo++; updateInvoiceNo(); }
+  // Rolling 1-month: delete same day from previous month
+  const recDate = new Date(date + 'T00:00:00');
+  const prevMonth = new Date(recDate);
+  prevMonth.setMonth(prevMonth.getMonth() - 1);
+  const py = prevMonth.getFullYear();
+  const pm = String(prevMonth.getMonth()+1).padStart(2,'0');
+  const pd = String(prevMonth.getDate()).padStart(2,'0');
+  const prevDateStr = `${py}-${pm}-${pd}`;
+  const prevIdx = records.findIndex(r => r.date === prevDateStr);
+  if(prevIdx >= 0){ records.splice(prevIdx, 1); }
+  // ✅ إعادة حساب التسلسل الكامل بعد الحفظ
+  rechainRecords(date);
+  // تحديث الرصيد الافتتاحي في الواجهة بعد الحفظ
+  sessionOpeningBalance = getPrevDayBalance(date, records.find(r=>r.date===date)?.id || -1);
+}
+
+function setTodayDate(){
+  const t = new Date();
+  const y = t.getFullYear();
+  const m = String(t.getMonth()+1).padStart(2,'0');
+  const d = String(t.getDate()).padStart(2,'0');
+  const todayStr = `${y}-${m}-${d}`;
+  const inp = document.getElementById('inp-date');
+  inp.value = todayStr;
+  // ✅ لا يُسمح باختيار تاريخ مستقبلي
+  inp.max = todayStr;
+}
+
+// تحديث max يومياً (يُستدعى عند فتح picker)
+function refreshDateMax(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  const y = t.getFullYear();
+  const m = String(t.getMonth()+1).padStart(2,'0');
+  const d = String(t.getDate()).padStart(2,'0');
+  const inp = document.getElementById('inp-date');
+  inp.max = `${y}-${m}-${d}`;
+  // ✅ الحد الأدنى = 3 أيام ماضية (لمنع اختيار تاريخ أقدم من picker مباشرة)
+  const minDate = new Date(t); minDate.setDate(minDate.getDate() - 3);
+  const my = minDate.getFullYear();
+  const mm = String(minDate.getMonth()+1).padStart(2,'0');
+  const md = String(minDate.getDate()).padStart(2,'0');
+  inp.min = `${my}-${mm}-${md}`;
+}
+
+function updateHeader(){
+  document.getElementById('hdr-branch').textContent = settings.branchName ? 'فرع: '+settings.branchName : '—';
+}
+
+function updateInvoiceNo(){
+  document.getElementById('inp-invno').value = String(settings.invoiceNo).padStart(6,'0');
+}
+
+function applyOpeningBalance(){
+  document.getElementById('inp-prev').value = n(sessionOpeningBalance) + ' ر.س';
+  calc();
+}
+
+// ============================================================
+// SETUP SCREEN
+// ============================================================
+function submitSetup(){
+  const branch = document.getElementById('ss-branch').value.trim();
+  const bal = parseFloat(document.getElementById('ss-opening').value);
+  if(!branch){ toast('⚠️ الرجاء إدخال اسم الفرع','warn'); return; }
+  if(isNaN(bal) || bal < 0){ toast('⚠️ الرجاء إدخال الرصيد الافتتاحي','warn'); return; }
+  // Save branch name and global opening balance
+  settings.branchName = branch;
+  // حفظ الرصيد الافتتاحي العالمي (يُستخدم في rechainRecords)
+  if(!settings.globalOpeningBalance) settings.globalOpeningBalance = bal;
+  saveToStorage();
+  updateHeader();
+  // Lock opening balance for this session
+  sessionOpeningBalance = bal;
+  applyOpeningBalance();
+  document.getElementById('setup-screen').classList.add('hidden');
+  toast('✅ تم الدخول | الرصيد الافتتاحي: '+n(bal)+' ر.س');
+}
+
+// ============================================================
+// STORAGE — Android Native (SharedPreferences) + localStorage fallback
+// داخل APK: يخزن في SharedPreferences حسب ذاكرة الهاتف (بلا حد)
+// في المتصفح: يرجع لـ localStorage تلقائياً
+// ============================================================
+const _isAndroid = () => !!(window.AndroidStorage);
+
+function _storageGet(key){
+  if(_isAndroid()){
+    try{ const v=window.AndroidStorage.getItem(key); return v||null; }catch(e){ return null; }
+  }
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+function _storageSet(key, val){
+  if(_isAndroid()){
+    try{ window.AndroidStorage.setItem(key, val); }catch(e){}
+    return;
+  }
+  try{ localStorage.setItem(key, val); }catch(e){}
+}
+function _storageRemove(key){
+  if(_isAndroid()){
+    try{ window.AndroidStorage.removeItem(key); }catch(e){}
+    return;
+  }
+  try{ localStorage.removeItem(key); }catch(e){}
+}
+
+function loadFromStorage(){
+  try{
+    const s = _storageGet('asalat_settings');
+    if(s) settings = Object.assign(settings, JSON.parse(s));
+    const r = _storageGet('asalat_records');
+    if(r) records = JSON.parse(r);
+  }catch(e){ console.error(e); }
+}
+
+function saveToStorage(){
+  _storageSet('asalat_settings', JSON.stringify(settings));
+  _storageSet('asalat_records', JSON.stringify(records));
+}
+
+// ============================================================
+// CASHIER ROWS
+// ============================================================
+function renderCashierRows(){
+  const tbody = document.getElementById('cashier-rows');
+  tbody.innerHTML = '';
+  if(!settings.activeCashiers || settings.activeCashiers.length === 0){
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:14px">لا يوجد كاشيرات نشطة</td></tr>';
+    return;
+  }
+  [...settings.activeCashiers].sort((a,b)=>a-b).forEach(num=>{
+    tbody.innerHTML += `<tr>
+      <td class="cname">كاشير<br>${num}</td>
+      <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+      <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+    </tr>`;
+  });
+}
+
+function renderPaymentRows(){
+  const div = document.getElementById('payment-rows');
+  div.innerHTML = '';
+  for(let i=1;i<=5;i++){
+    div.innerHTML += `<div class="prow">
+      <input class="pi-no" type="text" id="p${i}-no" placeholder="رقم">
+      <input class="pi-desc" type="text" id="p${i}-desc" placeholder="البيان">
+      <input class="pi-amt" type="number" id="p${i}-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()">
+    </div>`;
+  }
+}
+
+// ============================================================
+// CALC
+// ============================================================
+function calc(){
+  const prev = sessionOpeningBalance || 0;
+  let totalCash=0, totalNet=0;
+  // نحسب من الصفوف الظاهرة فعلاً في الجدول (يعمل مع سجلات قديمة وجديدة)
+  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
+    const cashEl  = row.querySelector('[id$="-cash"]');
+    const netEl   = row.querySelector('[id$="-net"]');
+    if(cashEl) totalCash += parseFloat(cashEl.value)||0;
+    if(netEl)  totalNet  += parseFloat(netEl.value)||0;
+  });
+  const addAmt = parseFloat(document.getElementById('inp-add-amt')?.value)||0;
+  const grandTotal = prev + totalCash + addAmt;
+  let totalPay=0;
+  for(let i=1;i<=5;i++) totalPay += parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+  const dep = parseFloat(document.getElementById('inp-dep').value)||0;
+  const totalOut = totalPay + dep;
+  const finalBal = grandTotal - totalOut;
+  const f = v => n(v) + ' <span class="unit">ر.س</span>';
+  document.getElementById('t-cash').innerHTML  = f(totalCash);
+  document.getElementById('t-net').innerHTML   = f(totalNet);
+  document.getElementById('t-prev').innerHTML  = f(prev);
+  document.getElementById('t-add').innerHTML   = f(addAmt);
+  document.getElementById('t-add-ref').innerHTML = f(addAmt);
+  document.getElementById('t-grand').innerHTML = f(grandTotal);
+  document.getElementById('t-pay').innerHTML   = f(totalPay);
+  document.getElementById('t-out').innerHTML   = f(totalOut);
+  const finEl = document.getElementById('t-final');
+  finEl.innerHTML = f(finalBal);
+  finEl.style.color = finalBal < 0 ? 'var(--err)' : 'var(--g)';
+  return {totalCash, totalNet, prev, addAmt, grandTotal, totalPay, dep, totalOut, finalBal};
+}
+
+// ============================================================
+// SAVE RECORD
+// ============================================================
+function saveRecord(){
+  // ✅ منع الحفظ في وضع العرض
+  if(_viewingRecordId){
+    toast('👁️ أنت في وضع العرض — اضغط "تعديل" أولاً','warn');
+    return;
+  }
+  // إذا كنا في وضع التعديل — وجّه للحفظ الصحيح
+  if(editingRecordId){
+    toast('⚠️ أنت في وضع التعديل — اضغط "حفظ التعديل" في الشريط الأصفر','warn');
+    return;
+  }
+  const date = document.getElementById('inp-date').value;
+  if(!date){ toast('⚠️ الرجاء اختيار التاريخ','warn'); return; }
+  const isNew = !records.find(r=>r.date===date);
+  autoSave();
+  toast(isNew ? '✅ تم الحفظ بنجاح' : '✅ تم تحديث السجل');
+}
+
+// ============================================================
+// NEW ENTRY
+// ============================================================
+function newEntry(){
+  // ✅ تنظيف وضع العرض والتعديل
+  editingRecordId=null;
+  _viewingRecordId=null;
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  document.getElementById('edit-mode-banner').style.display='none';
+  if(!confirm('هل تريد الانتقال لتاريخ جديد؟')) return;
+  setTodayDate();
+  refreshDateMax();
+  onDateChange();
+  toast('🆕 تاريخ جديد جاهز');
+}
+
+// ============================================================
+// IMAGES
+// ============================================================
+
+// ── فتح الكاميرا مباشرة (APK) أو input fallback (متصفح) ──────────────────
+window._wantCamera = false; // علم لإخبار Java أننا نريد الكاميرا
+
+function openCameraOrFile(){
+  if(window.AndroidCamera){
+    // وضع العلم: onShowFileChooser في Java سيقرأه ويفتح الكاميرا بدل المعرض
+    window._wantCamera = true;
+    document.getElementById('img-cam-trigger').click();
+    // إعادة العلم بعد 500ms
+    setTimeout(()=>{ window._wantCamera = false; }, 500);
+  } else {
+    // متصفح: capture="camera" يفتح الكاميرا مباشرة
+    document.getElementById('img-cam').click();
+  }
+}
+
+// addImage من input file (متصفح / fallback)
+function addImageFromInput(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+  processImageFile(file);
+}
+
+function processImageFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    // إضافة الصورة كما هي بدون أي معالجة
+    posImages.push(ev.target.result);
+    renderImages();
+    toast('📷 تمت إضافة الصورة');
+  };
+  reader.readAsDataURL(file);
+}
+
+function addImage(e){
+  const file=e.target.files[0]; if(!file) return; e.target.value='';
+  processImageFile(file);
+}
+
+function removeImage(idx){
+  posImages.splice(idx,1); renderImages();
+}
+
+function renderImages(){
+  const grid=document.getElementById('img-grid');
+  if(!posImages.length){
+    grid.innerHTML='<div style="color:var(--tl);font-size:12px;text-align:center;padding:12px;grid-column:span 2">لا توجد صور مضافة</div>';
+    return;
+  }
+  grid.innerHTML=posImages.map((src,i)=>`
+    <div class="img-thumb-wrap">
+      <img src="${src}" alt="صورة ${i+1}">
+      <button class="img-del-btn" onclick="removeImage(${i})">✕</button>
+    </div>`).join('');
+}
+
+// ============================================================
+// FILL PRINT AREA
+// ============================================================
+function fillPrintArea(){
+  const vals=calc();
+  const date=document.getElementById('inp-date').value;
+  const invNo=document.getElementById('inp-invno').value;
+  const branchText='فرع: '+settings.branchName;
+  document.getElementById('p-branch').textContent=branchText;
+  document.getElementById('p-invno').textContent=invNo;
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayName = date ? dayNames[new Date(date + 'T00:00:00').getDay()] : '';
+  const df = formatDateAr(date);
+  document.getElementById('p-date').textContent = (dayName ? dayName + ', ' : '') + df;
+  let cashRows='';
+  [...(settings.activeCashiers||[])].sort((a,b)=>a-b).forEach(num=>{
+    const cash=parseFloat(document.getElementById(`c${num}-cash`)?.value)||0;
+    const net=parseFloat(document.getElementById(`c${num}-net`)?.value)||0;
+    cashRows+=`<tr><td>كاشير ${num}</td><td>مبيعات الكاشير</td><td>${n(cash)}</td><td>${n(net)}</td></tr>`;
+  });
+  document.getElementById('p-cashier-rows').innerHTML=cashRows;
+  document.getElementById('pf-cash').textContent=n(vals.totalCash);
+  document.getElementById('pf-net').textContent=n(vals.totalNet);
+  document.getElementById('ps-cash').textContent=n(vals.totalCash);
+  document.getElementById('ps-net').textContent=n(vals.totalNet);
+  document.getElementById('ps-total-sales').textContent=n(vals.totalCash+vals.totalNet);
+  document.getElementById('ps-prev').textContent=n(vals.prev);
+  if(vals.addAmt>0){
+    const addDesc=document.getElementById('inp-add-desc').value||'إضافات';
+    document.getElementById('ps-add-label').textContent=addDesc+' (+)';
+    document.getElementById('ps-add').textContent=n(vals.addAmt);
+    document.getElementById('ps-add-row').style.display='flex';
+  } else {
+    document.getElementById('ps-add-row').style.display='none';
+  }
+  document.getElementById('ps-grand').textContent=n(vals.grandTotal);
+  document.getElementById('ps-pay').textContent=n(vals.totalPay);
+  document.getElementById('ps-dep').textContent=n(vals.dep);
+  document.getElementById('ps-out').textContent=n(vals.totalOut);
+  document.getElementById('ps-final').textContent=n(vals.finalBal);
+
+  // ✅ ملاحظة تلقائية — إضافة/طرح مبلغ
+  const noteSection = document.getElementById('p-note-section');
+  const noteText    = document.getElementById('p-note-text');
+
+  // ✅ الملاحظة الشاملة: كل التغييرات في السجلات (آخر 3 أيام فقط)
+  const currentDate   = date;
+  const currentInvNo  = document.getElementById('inp-invno')?.value || '';
+  const currentAddAmt = parseFloat(document.getElementById('inp-add-amt')?.value) || 0;
+  const currentAddDsc = document.getElementById('inp-add-desc')?.value || '';
+
+  // حساب حد 3 أيام
+  const todayD = new Date(); todayD.setHours(0,0,0,0);
+  const cutoff = new Date(todayD); cutoff.setDate(cutoff.getDate()-3);
+
+  // دالة لبناء سطر ملاحظة كامل لسجل محفوظ
+  function buildNoteLines(r){
+    const lines = [];
+    const inv   = String(r.invNo||'').padStart(6,'0');
+    const dStr  = `بتاريخ <strong>${formatDateAr(r.date)}</strong> — سند <strong>${inv}</strong>`;
+    const sep   = `<hr style="margin:2px 0;border:none;border-top:1px dashed #e2c46d">`;
+
+    // ① إضافة/طرح مبلغ (حقل الإضافات)
+    const addAmt = parseFloat(r.additionAmt)||0;
+    if(addAmt !== 0){
+      const sign = addAmt>0?'+':'';
+      const op   = addAmt>0 ? '➕ إضافة مبلغ للصندوق' : '➖ طرح مبلغ من الصندوق';
+      const desc = r.additionDesc ? ` (${r.additionDesc})` : '';
+      lines.push(`<div>📌 <strong>${op}${desc}:</strong> <span dir="ltr">${sign}${n(addAmt)} ر.س</span> — ${dStr}</div>`);
+    }
+
+    // ② إيداع بنكي
+    const dep = parseFloat(r.deposit)||0;
+    if(dep > 0){
+      lines.push(`<div>🏦 <strong>إيداع بنكي:</strong> <span dir="ltr">${n(dep)} ر.س</span> — ${dStr}</div>`);
+    }
+
+    // ③ مدفوعات من الصندوق
+    const pays = (r.payments||[]).filter(p=>parseFloat(p.amount)>0);
+    if(pays.length>0){
+      const total = pays.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+      const details = pays.map(p=>`${p.desc||'بدون بيان'} (${n(parseFloat(p.amount))} ر.س)`).join('، ');
+      lines.push(`<div>💸 <strong>مدفوعات (${pays.length}):</strong> <span dir="ltr">${n(total)} ر.س</span> — ${details} — ${dStr}</div>`);
+    }
+
+    return lines;
+  }
+
+  const allNoteLines = [];
+
+  // ① السجلات المحفوظة ضمن آخر 3 أيام (غير السجل الحالي)
+  const recentRecs = (records||[])
+    .filter(r => {
+      const d = new Date(r.date+'T00:00:00');
+      return d >= cutoff && d <= todayD && r.date !== currentDate;
+    })
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  recentRecs.forEach(r => {
+    const lines = buildNoteLines(r);
+    if(lines.length > 0){
+      allNoteLines.push(...lines);
+    }
+  });
+
+  // ② الفاتورة الحالية المفتوحة
+  const curDate_d = new Date(currentDate+'T00:00:00');
+  if(curDate_d >= cutoff){
+    // مدفوعات الفاتورة الحالية
+    const curPays = [];
+    for(let i=1;i<=5;i++){
+      const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+      const desc=(document.getElementById(`p${i}-desc`)?.value||'').trim();
+      if(amt>0) curPays.push({amount:amt,desc});
+    }
+    const curDep  = parseFloat(document.getElementById('inp-dep')?.value)||0;
+    const invLabel= currentInvNo ? `سند <strong>${currentInvNo}</strong>` : '';
+
+    if(currentAddAmt !== 0){
+      const sign = currentAddAmt>0?'+':'';
+      const op   = currentAddAmt>0?'➕ إضافة مبلغ للصندوق':'➖ طرح مبلغ من الصندوق';
+      const desc = currentAddDsc?` (${currentAddDsc})`:'';
+      allNoteLines.push(`<div>📌 <strong>${op}${desc}:</strong> <span dir="ltr">${sign}${n(currentAddAmt)} ر.س</span> — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
+    }
+    if(curDep>0){
+      allNoteLines.push(`<div>🏦 <strong>إيداع بنكي:</strong> <span dir="ltr">${n(curDep)} ر.س</span> — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
+    }
+    if(curPays.length>0){
+      const total=curPays.reduce((s,p)=>s+p.amount,0);
+      const details=curPays.map(p=>`${p.desc||'بدون بيان'} (${n(p.amount)} ر.س)`).join('، ');
+      allNoteLines.push(`<div>💸 <strong>مدفوعات (${curPays.length}):</strong> <span dir="ltr">${n(total)} ر.س</span> — ${details} — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
+    }
+  }
+
+  if(allNoteLines.length > 0){
+    noteSection.className = 'p-note-warn';
+
+    // ✅ حساب الإجمالي الصافي: الإضافات بالموجب، الطرح والمدفوعات والإيداع بالسالب
+    let netTotal = 0;
+
+    // من السجلات المحفوظة
+    recentRecs.forEach(r => {
+      netTotal += parseFloat(r.additionAmt)||0;          // إضافة (+) أو طرح (-)
+      netTotal -= parseFloat(r.deposit)||0;               // إيداع بنكي (-)
+      (r.payments||[]).forEach(p => netTotal -= parseFloat(p.amount)||0); // مدفوعات (-)
+    });
+
+    // من الفاتورة الحالية
+    if(new Date(currentDate+'T00:00:00') >= cutoff){
+      netTotal += currentAddAmt;
+      netTotal -= parseFloat(document.getElementById('inp-dep')?.value)||0;
+      for(let i=1;i<=5;i++) netTotal -= parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    }
+
+    const netSign   = netTotal >= 0 ? '+' : '';
+    const netColor  = netTotal >= 0 ? '#276749' : '#c53030';
+    const netBg     = netTotal >= 0 ? '#f0fff4' : '#fff5f5';
+    const netBorder = netTotal >= 0 ? '#68d391' : '#fc8181';
+    const netLabel  = netTotal >= 0 ? '📈 صافي الإجمالي' : '📉 صافي الإجمالي';
+
+    const totalLine = `<div style="margin-top:5px;padding:5px 8px;border-radius:5px;background:${netBg};border:1.5px solid ${netBorder};font-weight:900;font-size:9.5pt;display:flex;justify-content:space-between;align-items:center">
+      <span>${netLabel}</span>
+      <span style="direction:ltr;color:${netColor};font-size:10pt">${netSign}${n(netTotal)} ر.س</span>
+    </div>`;
+
+    noteText.innerHTML =
+      `<div style="display:flex;flex-direction:column;gap:3px">` +
+      allNoteLines.join('') +
+      `</div>` +
+      totalLine;
+  } else {
+    noteSection.className = 'p-note-none';
+    noteText.textContent = 'لا توجد ملاحظات على الـ 3 أيام الماضية.';
+  }
+  let payRows=''; let hasP=false;
+  for(let i=1;i<=5;i++){
+    const no=document.getElementById(`p${i}-no`)?.value||'';
+    const desc=document.getElementById(`p${i}-desc`)?.value||'';
+    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    if(no||desc||amt){hasP=true;payRows+=`<tr><td>${no||'-'}</td><td>${desc||'-'}</td><td>${n(amt)}</td></tr>`;}
+  }
+  if(!hasP) payRows='<tr><td colspan="3" style="text-align:center;color:#aaa">لا توجد مدفوعات</td></tr>';
+  document.getElementById('p-pay-rows').innerHTML=payRows;
+
+  // Build image pages: 4 per page (2x2 grid), fixed A4 div, no margins
+  const imgSection=document.getElementById('p-img-section');
+  const p1=document.getElementById('p-page1');
+  if(posImages.length>0){
+    // Add page break after report only when images exist
+    p1.style.pageBreakAfter='always';
+    const chunks=[];
+    for(let i=0;i<posImages.length;i+=4) chunks.push(posImages.slice(i,i+4));
+    // Use A4 dimensions with small safety margin to never overflow
+    const pageS='width:100%;height:277mm;display:flex;flex-wrap:wrap;margin:0;padding:0;overflow:hidden;box-sizing:border-box';
+    const cellS='width:50%;height:138.5mm;overflow:hidden;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:1mm';
+    const iS='max-width:100%;max-height:100%;object-fit:contain';
+    imgSection.innerHTML=chunks.map((chunk,ci)=>{
+      const cell=(idx)=>`<div style="${cellS}">${chunk[idx]?`<img src="${chunk[idx]}" style="${iS}">`:'<div style="width:100%;height:100%"></div>'}</div>`;
+      const brk = ci===0 ? '' : '<div class="pg-break"></div>';
+      // آخر صفحة صور: page-break-after:avoid لمنع صفحة فارغة بعدها
+      const isLast = ci === chunks.length - 1;
+      const extraStyle = isLast ? 'page-break-after:avoid;' : '';
+      return `${brk}<div class="p-img-page" style="${pageS}${extraStyle}">${cell(0)}${cell(1)}${cell(2)}${cell(3)}</div>`;
+    }).join('');
+  } else {
+    // No images: no page break, no blank second page
+    p1.style.pageBreakAfter='auto';
+    imgSection.innerHTML='';
+  }
+  return vals;
+}
+
+// ============================================================
+// PRINT
+// ============================================================
+function printPDF(){
+  const date = document.getElementById('inp-date').value;
+  if(date && !editingRecordId) autoSave();
+  // ✅ إظهار parea مؤقتاً للطباعة
+  const parea = document.getElementById('parea');
+  fillPrintArea();
+  setTimeout(()=>{
+    document.body.classList.add('printing-mode');
+    if(window.AndroidPrint){
+      window.AndroidPrint.printPage();
+      setTimeout(()=>document.body.classList.remove('printing-mode'), 1000);
+    } else {
+      window.print();
+      setTimeout(()=>document.body.classList.remove('printing-mode'), 1000);
+    }
+  }, 400);
+}
+
+// ============================================================
+// WHATSAPP AS PDF (via jsPDF + html2canvas)
+// ============================================================
+async function shareWAasPDF(){
+  const btn=document.getElementById('btn-wa');
+  btn.innerHTML='⏳ جاري التجهيز...';
+  btn.disabled=true;
+  showProgress('📄 Creating PDF...',0,'Preparing data...');
+
+  const parea = document.getElementById('parea');
+  const pareaOrigStyle = parea.getAttribute('style') || '';
+  parea.style.cssText = 'display:block !important;position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1;overflow:visible';
+
+  try{
+    fillPrintArea();
+    await sleep(400);
+    setProgress(15,'Rendering page...');
+
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const A4W=210, A4H=297;
+
+    // ── PAGE 1: ضبط الخط CSS قبل الالتقاط لاحتواء كل البيانات في A4 ─────
+    const page1=document.getElementById('p-page1');
+    page1.style.display='block';
+    await sleep(100);
+
+    // A4 @96dpi ≈ 1122px height مع هامش 20px top+bottom = 1082px مساحة فعلية
+    const A4_MAX_H = 1082;
+    // قائمة أحجام الخط نجرّبها من الأكبر للأصغر
+    const fontSizes = ['9.5pt','8.5pt','7.5pt','6.5pt','5.5pt'];
+    let usedFontSize = fontSizes[0];
+    for(const fs of fontSizes){
+      parea.style.fontSize = fs;
+      await sleep(60);
+      if(page1.scrollHeight <= A4_MAX_H){ usedFontSize=fs; break; }
+    }
+    // إذا لا يزال أكبر بعد أصغر خط، نستخدم transform:scale
+    await sleep(80);
+    let cssScale = 1;
+    if(page1.scrollHeight > A4_MAX_H){
+      cssScale = A4_MAX_H / page1.scrollHeight;
+      page1.style.transformOrigin = 'top center';
+      page1.style.transform = `scale(${cssScale})`;
+      page1.style.height = `${page1.scrollHeight}px`;
+      parea.style.height = `${page1.scrollHeight * cssScale}px`;
+      await sleep(80);
+    }
+
+    const canvas1=await html2canvas(page1,{
+      scale: 2,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      allowTaint:true,
+      windowWidth: page1.offsetWidth,
+      windowHeight: page1.scrollHeight
+    });
+
+    // إعادة الخط والتحويل لوضعهم الطبيعي
+    parea.style.fontSize = '';
+    page1.style.transform = '';
+    page1.style.transformOrigin = '';
+    page1.style.height = '';
+    parea.style.height = '';
+
+    if(!canvas1 || canvas1.width===0 || canvas1.height===0){
+      throw new Error('Canvas capture returned empty image');
+    }
+    setProgress(40,'Building PDF page...');
+    const img1 = canvas1.toDataURL('image/jpeg',0.88);
+    // احتواء الصورة في A4 دائماً — مهما كانت الأبعاد
+    const r1 = canvas1.width/canvas1.height;
+    const maxW = A4W-12, maxH = A4H-12;
+    let w1=maxW, h1=w1/r1;
+    if(h1>maxH){ h1=maxH; w1=h1*r1; }
+    pdf.addImage(img1,'JPEG',6,6,w1,h1);
+
+    // Image pages
+    if(posImages.length>0){
+      setProgress(60,'إضافة صفحات الصور...');
+      const chunks=[];
+      for(let i=0;i<posImages.length;i+=4) chunks.push(posImages.slice(i,i+4));
+      for(let ci=0;ci<chunks.length;ci++){
+        pdf.addPage();
+        setProgress(60+Math.round(30*(ci+1)/chunks.length),`صفحة الصور ${ci+1}...`);
+        const chunk=chunks[ci];
+        // 4 images hardcoded exact positions — A4=210x297mm
+        // Each cell ≈ 103x146mm, 2mm gap, 2mm outer margin
+        const CELLS=[
+          {x:2,  y:2,   w:103, h:146},
+          {x:107,y:2,   w:101, h:146},
+          {x:2,  y:150, w:103, h:145},
+          {x:107,y:150, w:101, h:145}
+        ];
+        for(let k=0;k<chunk.length&&k<4;k++){
+          const cell=CELLS[k];
+          // ضغط الصورة مع الحفاظ على الألوان
+          const gCanvas=document.createElement('canvas');
+          const tempImg=new Image();
+          await new Promise(res=>{tempImg.onload=res;tempImg.src=chunk[k];});
+          const maxDim=800;
+          let sw=tempImg.width, sh=tempImg.height;
+          if(sw>sh){sh=Math.round(sh*maxDim/sw);sw=maxDim;}
+          else{sw=Math.round(sw*maxDim/sh);sh=maxDim;}
+          gCanvas.width=sw; gCanvas.height=sh;
+          const gCtx=gCanvas.getContext('2d');
+          // صور ملوّنة بدون تحويل لأبيض وأسود
+          gCtx.drawImage(tempImg,0,0,sw,sh);
+          const gData=gCanvas.toDataURL('image/jpeg',0.82);
+          // Border
+          pdf.setDrawColor(180);pdf.setLineWidth(0.2);
+          pdf.rect(cell.x, cell.y, cell.w, cell.h);
+          // Fit image inside cell preserving aspect ratio
+          const ar=sw/sh;
+          let iw=cell.w-1, ih=cell.h-1;
+          if(iw/ih>ar){iw=ih*ar;}else{ih=iw/ar;}
+          if(iw>cell.w-1){iw=cell.w-1; ih=iw/ar;}
+          if(ih>cell.h-1){ih=cell.h-1; iw=ih*ar;}
+          const ix=cell.x+(cell.w-iw)/2;
+          const iy=cell.y+(cell.h-ih)/2;
+          pdf.addImage(gData,'JPEG',ix,iy,iw,ih);
+        }
+      }
+    }
+
+    setProgress(95,'حفظ ومشاركة الملف...');
+    const pdfBlob=pdf.output('blob');
+    const date=document.getElementById('inp-date').value;
+    // ✅ اسم الملف = تاريخ الفاتورة فقط بالإنجليزية (مثال: 20-05-2026.pdf)
+    const [fy,fm,fd] = (date||'').split('-');
+    const fileName = date ? `${fd}-${fm}-${fy}.pdf` : 'report.pdf';
+    const pdfFile=new File([pdfBlob],fileName,{type:'application/pdf'});
+
+    setProgress(98,'Sending to WhatsApp...');
+
+    // ✅ الأولوية 1: Android Java Bridge (APK) — الأكثر موثوقية
+    if(window.AndroidShare){
+      const reader = new FileReader();
+      reader.onloadend = function(){
+        const base64 = reader.result.split(',')[1];
+        window.AndroidShare.sharePdfToWhatsApp(base64, fileName);
+        toast('📲 جاري فتح واتساب...');
+      };
+      reader.readAsDataURL(pdfBlob);
+
+    // ✅ الأولوية 2: Web Share API (Chrome/Safari على موبايل)
+    } else if(typeof navigator.share === 'function'){
+      try{
+        // بعض المتصفحات لا تدعم files — نجرّب مع files أولاً
+        const shareData = {title: fileName.replace('.pdf',''), files:[pdfFile]};
+        if(navigator.canShare && !navigator.canShare(shareData)){
+          // لا تدعم الملفات — جرّب بدون files
+          await navigator.share({title:fileName.replace('.pdf',''), text:'تقرير الحركة اليومية'});
+          toast('⚠️ المتصفح لا يدعم مشاركة الملفات — جاري التحميل...');
+          const url=URL.createObjectURL(pdfBlob);
+          const a=document.createElement('a'); a.href=url; a.download=fileName;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(()=>URL.revokeObjectURL(url),3000);
+        } else {
+          await navigator.share(shareData);
+          toast('✅ تمت المشاركة بنجاح');
+        }
+      } catch(shareErr){
+        if(shareErr && shareErr.name === 'AbortError'){
+          toast('✅ تم إغلاق نافذة المشاركة');
+        } else {
+          // خطأ — تحميل مباشر
+          const url=URL.createObjectURL(pdfBlob);
+          const a=document.createElement('a'); a.href=url; a.download=fileName;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(()=>URL.revokeObjectURL(url),3000);
+          toast('📥 تم تحميل PDF — افتح واتساب وأرفق الملف');
+        }
+      }
+
+    // ✅ الأولوية 3: تحميل مباشر (متصفح سطح مكتب)
+    } else {
+      const url=URL.createObjectURL(pdfBlob);
+      const a=document.createElement('a'); a.href=url; a.download=fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      toast('📥 تم تحميل PDF');
+    }
+  }catch(err){
+    console.error(err);
+    toast('❌ تعذر إنشاء PDF: '+err.message,'err');
+  }finally{
+    // ✅ إعادة إخفاء منطقة الطباعة
+    parea.style.cssText = pareaOrigStyle;
+    hideProgress();
+    btn.innerHTML='📲 WhatsApp PDF';
+    btn.disabled=false;
+  }
+}
+
+// ============================================================
+// HISTORY (newest first = descending by date)
+// ============================================================
+function renderHistory(){
+  const div=document.getElementById('hist-list');
+  if(!records||!records.length){
+    div.innerHTML='<div class="empty"><div class="eico">📭</div>لا توجد سجلات محفوظة بعد</div>';
+    return;
+  }
+  // Sort descending (newest first = highest date at top)
+  const sorted=[...records].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const today=new Date(); today.setHours(0,0,0,0);
+  div.innerHTML=sorted.map(r=>{
+    const recDate=new Date(r.date+'T00:00:00');
+    const diffDays=Math.round((today-recDate)/86400000);
+    const editable=diffDays>=0&&diffDays<=3;
+    const editBtn=editable
+      ? `<button class="hitem-edit" onclick="editRecord(${r.id},event)">✏️ تعديل</button>`
+      : `<span class="hitem-locked" title="لا يمكن التعديل بعد 3 أيام">🔒 مغلق</span>`;
+    return `
+    <div class="hitem">
+      <div class="hitem-top" onclick="loadRecord(${r.id})">
+        <span class="hdate">${formatDateEn(r.date)}</span>
+        <span class="hno">سند #${String(r.invNo||0).padStart(6,'0')}</span>
+      </div>
+      <div class="hsum" onclick="loadRecord(${r.id})">
+        <span class="hchip">💵 نقد: ${n(r.totalCash)}</span>
+        <span class="hchip">💳 شبكة: ${n(r.totalNetwork)}</span>
+        <span class="hchip green">✅ ${n(r.finalBalance)} ر.س</span>
+      </div>
+      <div class="hitem-actions">
+        ${editBtn}
+        ${editable ? `<button class="hitem-del" onclick="deleteRecord(${r.id},event)">🗑️ حذف</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── مساعدة: تعبئة النموذج من سجل دون تفعيل أي وضع ─────────────
+function _fillFormFromRec(r){
+  document.getElementById('inp-date').value=r.date;
+  document.getElementById('inp-invno').value=String(r.invNo||0).padStart(6,'0');
+  document.getElementById('inp-dep').value=(r.deposit||0).toFixed(2);
+  document.getElementById('inp-add-desc').value=r.additionDesc||'';
+  document.getElementById('inp-add-amt').value=(r.additionAmt||0)||'';
+  for(let i=1;i<=6;i++){
+    const ce=document.getElementById(`c${i}-cash`),ne=document.getElementById(`c${i}-net`);
+    if(ce)ce.value='';if(ne)ne.value='';
+  }
+  (r.cashiers||[]).forEach(c=>{
+    const ce=document.getElementById(`c${c.id}-cash`),ne=document.getElementById(`c${c.id}-net`);
+    if(ce)ce.value=c.cash||'';if(ne)ne.value=c.network||'';
+  });
+  for(let i=1;i<=5;i++){
+    document.getElementById(`p${i}-no`).value='';
+    document.getElementById(`p${i}-desc`).value='';
+    document.getElementById(`p${i}-amt`).value='';
+  }
+  (r.payments||[]).forEach((p,i)=>{
+    if(i>=5)return;
+    document.getElementById(`p${i+1}-no`).value=p.no||'';
+    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
+    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
+  });
+  posImages=r.images?[...r.images]:[];
+  renderImages();
+  sessionOpeningBalance=getPrevDayBalance(r.date,r.id);
+  applyOpeningBalance();
+  calc();
+  toEnglishAllInputs();
+}
+
+// ── وضع العرض (Read-Only) ─────────────────────────────────────
+let _viewingRecordId = null;
+
+function loadRecord(id){
+  const r=records.find(x=>x.id===id); if(!r) return;
+  _viewingRecordId = id;
+  showPage('entry',0);
+  _fillFormFromRec(r);
+
+  // قفل كل الحقول
+  document.querySelector('#pg-entry .card:not(:first-child)') // skip banner card
+  document.getElementById('pg-entry').querySelectorAll('input,select,textarea,button:not(#view-mode-banner button)')
+    .forEach(el=>el.setAttribute('data-view-locked','1'));
+  document.getElementById('pg-entry').classList.add('view-locked');
+
+  // إخفاء أزرار الحفظ وإظهار بانر العرض
+  document.getElementById('edit-mode-banner').style.display='none';
+  const vmb=document.getElementById('view-mode-banner');
+  vmb.style.display='block';
+  document.getElementById('view-banner-text').textContent=`عرض سجل — ${formatDateEn(r.date)} — سند #${String(r.invNo||0).padStart(6,'0')}`;
+
+  // هل هذا السجل قابل للتعديل (آخر 3 أيام)؟
+  const editBtn=document.getElementById('view-edit-btn');
+  if(canEditRecord(r.date)){
+    editBtn.style.display='inline-block';
+  } else {
+    editBtn.style.display='none';
+  }
+  toast('👁️ وضع العرض — اضغط "تعديل" للتعديل');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// هل يمكن تعديل سجل بهذا التاريخ؟ (فقط آخر 3 أيام)
+function canEditRecord(dateStr){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const rec=new Date(dateStr+'T00:00:00');
+  const diffDays=Math.round((today-rec)/(86400000));
+  return diffDays>=0 && diffDays<=3;
+}
+
+// إغلاق وضع العرض والرجوع لإدخال جديد
+function closeViewMode(){
+  _viewingRecordId=null;
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  newEntry();
+}
+
+// الانتقال من العرض إلى التعديل
+function editFromView(){
+  const id=_viewingRecordId;
+  if(!id) return;
+  const r=records.find(x=>x.id===id); if(!r) return;
+  // إلغاء قفل الحقول
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  _viewingRecordId=null;
+  // تفعيل وضع التعديل مباشرة
+  editRecord(id,{stopPropagation:()=>{}});
+}
+
+// ============================================================
+// EDIT RECORD
+// ============================================================
+function editRecord(id, e){
+  e.stopPropagation();
+  const r = records.find(x => x.id === id);
+  if(!r) return;
+  // ✅ تحقق من قاعدة 3 أيام
+  if(!canEditRecord(r.date)){
+    toast('🔒 لا يمكن تعديل سجلات أقدم من 3 أيام','err');
+    return;
+  }
+  // إلغاء أي قفل عرض متبقٍّ
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  _viewingRecordId=null;
+  editingRecordId = id;
+  showPage('entry', 0);
+  // ملء النموذج ببيانات السجل
+  document.getElementById('inp-date').value = r.date;
+  document.getElementById('inp-invno').value = String(r.invNo||0).padStart(6,'0');
+  document.getElementById('inp-dep').value = (r.deposit||0).toFixed(2);
+  document.getElementById('inp-add-desc').value = r.additionDesc||'';
+  document.getElementById('inp-add-amt').value = (r.additionAmt||0)||'';
+  for(let i=1;i<=6;i++){
+    const ce=document.getElementById(`c${i}-cash`), ne=document.getElementById(`c${i}-net`);
+    if(ce)ce.value=''; if(ne)ne.value='';
+  }
+  (r.cashiers||[]).forEach(c=>{
+    const ce=document.getElementById(`c${c.id}-cash`), ne=document.getElementById(`c${c.id}-net`);
+    if(ce)ce.value=c.cash||''; if(ne)ne.value=c.network||'';
+  });
+  for(let i=1;i<=5;i++){
+    document.getElementById(`p${i}-no`).value='';
+    document.getElementById(`p${i}-desc`).value='';
+    document.getElementById(`p${i}-amt`).value='';
+  }
+  (r.payments||[]).forEach((p,i)=>{
+    if(i>=5)return;
+    document.getElementById(`p${i+1}-no`).value=p.no||'';
+    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
+    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
+  });
+  posImages = r.images ? [...r.images] : [];
+  renderImages();
+  // ✅ تحويل الأرقام إلى إنجليزية فور التحميل
+  setTimeout(toEnglishAllInputs, 50);
+  // إظهار بانر وضع التعديل
+  document.getElementById('edit-banner-text').textContent = 'تعديل سجل ' + formatDateAr(r.date);
+  document.getElementById('edit-mode-banner').style.display = 'block';
+  // ✅ استخدام الرصيد الحقيقي من السجل السابق (وليس القيمة المخزنة)
+  window._editingOldDate = r.date; // تتبع التاريخ القديم لإعادة الحساب صح
+  sessionOpeningBalance = getPrevDayBalance(r.date, id);
+  applyOpeningBalance();
+  calc();
+  toast('✏️ وضع التعديل — عدّل ثم اضغط "حفظ التعديل"', 'warn');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelEditMode(){
+  editingRecordId = null;
+  _viewingRecordId = null;
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  toast('↩️ تم إلغاء التعديل');
+}
+
+function saveEditRecord(){
+  if(!editingRecordId) return;
+  const date = document.getElementById('inp-date').value;
+  if(!date){ toast('⚠️ الرجاء تحديد التاريخ','warn'); return; }
+  // فحص تعارض التاريخ مع سجل آخر
+  const conflict = records.find(r => r.date === date && r.id !== editingRecordId);
+  if(conflict){
+    const msg = `⚠️ يوجد سجل محفوظ بتاريخ ${formatDateAr(date)}\n\nإذا أردت نقل البيانات لهذا التاريخ، احذف سجل ${formatDateAr(date)} أولاً ثم أعد التعديل.`;
+    alert(msg);
+    return;
+  }
+  // حفظ السجل المعدّل (بنفس الـ id ونفس رقم السند)
+  const oldRecord = records.find(r => r.id === editingRecordId);
+  const oldInvNo = oldRecord ? oldRecord.invNo : settings.invoiceNo;
+  // حذف السجل القديم
+  records = records.filter(r => r.id !== editingRecordId);
+  // بناء السجل الجديد
+  // ✅ تحديث الرصيد الافتتاحي للتاريخ الجديد قبل الحفظ
+  sessionOpeningBalance = getPrevDayBalance(date, editingRecordId);
+  applyOpeningBalance();
+  const vals = calc();
+  const cashiers = [];
+  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
+    const cashEl = row.querySelector('[id$="-cash"]');
+    const netEl  = row.querySelector('[id$="-net"]');
+    if(cashEl){
+      const m = cashEl.id.match(/^c(\d+)-cash$/);
+      if(m) cashiers.push({id:parseInt(m[1]), cash:parseFloat(cashEl.value)||0, network:parseFloat(netEl?.value)||0});
+    }
+  });
+  const payments = [];
+  for(let i=1;i<=5;i++){
+    const no=document.getElementById(`p${i}-no`)?.value||'';
+    const desc=document.getElementById(`p${i}-desc`)?.value||'';
+    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    if(no||desc||amt) payments.push({no,desc,amount:amt});
+  }
+  const updatedRecord = {
+    id: editingRecordId,
+    invNo: oldInvNo,
+    date,
+    branchName: settings.branchName,
+    openingBalance: vals.prev,
+    additionDesc: document.getElementById('inp-add-desc')?.value||'',
+    additionAmt: vals.addAmt,
+    cashiers, payments,
+    deposit: vals.dep,
+    totalCash: vals.totalCash, totalNetwork: vals.totalNet,
+    grandTotal: vals.grandTotal, totalPayments: vals.totalPay,
+    totalOut: vals.totalOut, finalBalance: vals.finalBal,
+    images: [...posImages]
+  };
+  records.push(updatedRecord);
+  // ✅ إعادة حساب التسلسل من أقدم تاريخ متأثر (القديم أو الجديد)
+  const oldDate = window._editingOldDate || date;
+  const fromDate = oldDate < date ? oldDate : date;
+  rechainRecords(fromDate);
+  editingRecordId = null;
+  _viewingRecordId = null;
+  window._editingOldDate = null;
+  document.getElementById('pg-entry').classList.remove('view-locked');
+  document.getElementById('view-mode-banner').style.display='none';
+  document.getElementById('edit-mode-banner').style.display = 'none';
+  toast('✅ تم حفظ التعديل — تم تحديث التسلسل التراكمي 🔄');
+}
+
+function deleteRecord(id,e){
+  e.stopPropagation();
+  if(!confirm('هل تريد حذف هذا السجل؟'))return;
+  const delRec = records.find(r=>r.id===id);
+  const delDate = delRec ? delRec.date : null;
+  records=records.filter(r=>r.id!==id);
+  // ✅ إعادة الحساب التراكمي بعد الحذف
+  if(delDate) rechainRecords(delDate);
+  else { saveToStorage(); renderHistory(); }
+  toast('🗑️ تم حذف السجل وتحديث الأرصدة 🔄');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderCashierToggles(){
+  const div=document.getElementById('cashier-toggles');div.innerHTML='';
+  for(let i=1;i<=6;i++){
+    const isOn=(settings.activeCashiers||[]).includes(i);
+    div.innerHTML+=`<div class="ctgl ${isOn?'on':''}" id="ctgl-${i}" onclick="toggleCashier(${i})">
+      <input type="checkbox" ${isOn?'checked':''} id="chk-${i}">كاشير ${i}</div>`;
+  }
+}
+function toggleCashier(num){
+  const el=document.getElementById(`ctgl-${num}`),chk=document.getElementById(`chk-${num}`);
+  const idx=(settings.activeCashiers||[]).indexOf(num);
+  if(idx>=0){settings.activeCashiers.splice(idx,1);el.classList.remove('on');chk.checked=false;}
+  else{if(!settings.activeCashiers)settings.activeCashiers=[];settings.activeCashiers.push(num);el.classList.add('on');chk.checked=true;}
+}
+function loadSettingsUI(){
+  document.getElementById('set-branch').value=settings.branchName||'';
+  document.getElementById('set-invstart').value=settings.invoiceNo||1000;
+}
+function saveSettings(){
+  settings.branchName=document.getElementById('set-branch').value.trim()||'الفرع الرئيسي';
+  settings.invoiceNo=parseInt(document.getElementById('set-invstart').value)||1000;
+  saveToStorage();updateHeader();renderCashierRows();renderCashierToggles();updateInvoiceNo();
+  // Update setup screen branch input for next session
+  document.getElementById('ss-branch').value=settings.branchName;
+  toast('✅ تم حفظ الإعدادات');
+}
+function clearAll(){
+  if(!confirm('هل أنت متأكد من مسح جميع البيانات؟\nهذا الإجراء لا يمكن التراجع عنه!'))return;
+  // مسح كل المفاتيح
+  ['asalat_settings','asalat_records','asalat_device_id','asalat_first_run','asalat_activated_year'].forEach(k=>_storageRemove(k));
+  if(!_isAndroid()) try{localStorage.clear();}catch(e){}
+  records=[];
+  settings={branchName:'',activeCashiers:[1,2,3,4],invoiceNo:1000};
+  sessionOpeningBalance=0;
+  posImages=[];
+  // Return to first-time setup screen
+  document.getElementById('ss-branch').value='';
+  document.getElementById('ss-opening').value='';
+  document.getElementById('ss-prev-hint').style.display='none';
+  document.getElementById('setup-screen').classList.remove('hidden');
+  clearFormFields();
+  updateHeader();
+  renderHistory();
+  renderImages();
+  toast('🗑️ تم مسح جميع البيانات — أعد الإعداد');
+}
+
+// ============================================================
+// BACKUP / RESTORE
+// ============================================================
+function exportBackup(){
+  const data={
+    exportDate:new Date().toISOString(),
+    version:'3',
+    settings,
+    records
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const dateStr=new Date().toISOString().split('T')[0];
+  a.href=url;a.download=`asalat-backup-${dateStr}.json`;a.click();
+  URL.revokeObjectURL(url);
+  toast('📤 تم تصدير النسخة الاحتياطية');
+}
+function importBackup(e){
+  const file=e.target.files[0];if(!file)return;
+  e.target.value='';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.records||!data.settings) throw new Error('ملف غير صالح');
+      if(!confirm(`سيتم استبدال جميع البيانات الحالية بـ ${data.records.length} سجل.\nهل تريد المتابعة؟`))return;
+      settings=Object.assign(settings,data.settings);
+      records=data.records;
+      saveToStorage();
+      loadSettingsUI();updateHeader();renderCashierRows();renderCashierToggles();updateInvoiceNo();renderHistory();
+      document.getElementById('ss-branch').value=settings.branchName||'';
+      toast('✅ تم استرداد النسخة الاحتياطية — '+records.length+' سجل');
+    }catch(err){
+      toast('❌ ملف غير صالح: '+err.message,'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// PROGRESS
+// ============================================================
+function showProgress(title,pct,msg){
+  document.getElementById('prog-title').textContent=title;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('prog-msg').textContent=msg;
+  document.getElementById('prog-overlay').classList.remove('hidden');
+}
+function setProgress(pct,msg){
+  document.getElementById('prog-bar').style.width=pct+'%';
+  if(msg)document.getElementById('prog-msg').textContent=msg;
+}
+function hideProgress(){document.getElementById('prog-overlay').classList.add('hidden');}
+
+// ============================================================
+// NAV
+// ============================================================
+function showPage(name,idx){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById(`pg-${name}`).classList.add('on');
+  const btns=document.querySelectorAll('.nb');
+  if(btns[idx])btns[idx].classList.add('on');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function n(v){return parseFloat(v||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function formatDateAr(dateStr){
+  if(!dateStr)return'';
+  try{
+    const[y,m,d]=dateStr.split('-');
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+  }catch(e){return dateStr;}
+}
+function formatDateEn(dateStr){
+  if(!dateStr)return'';
+  try{
+    const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dt = new Date(dateStr + 'T00:00:00');
+    return `${days[dt.getDay()]} ${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  }catch(e){return dateStr;}
+}
+function toastTimed(msg, type, ms){
+  ms = ms || 3000;
+  const el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'toast show ' + (type==='err'?'t-err':type==='warn'?'t-warn':'t-ok');
+  clearTimeout(window._toastTimedTimer);
+  window._toastTimedTimer = setTimeout(()=>{ el.className='toast'; }, ms);
+}
+
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');el.textContent=msg;
+  el.style.background=type==='warn'?'var(--warn)':type==='err'?'var(--err)':'#1a2535';
+  el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+init();
+</script>
+
+<script>
+// ── تحويل الأرقام العربية/الهندية إلى إنجليزية تلقائياً ──────────────────
+function toEnglishDigits(str){
+  return str.replace(/[٠١٢٣٤٥٦٧٨٩]/g, d => d.charCodeAt(0) - 1632)
+            .replace(/[۰۱۲۳۴۵۶۷۸۹]/g, d => d.charCodeAt(0) - 1776);
+}
+// ✅ تحويل كل الأرقام في الحقول المرئية إلى إنجليزية (بعد التحميل البرمجي)
+function toEnglishAllInputs(){
+  document.querySelectorAll('input[type="number"], input[type="text"], textarea').forEach(el=>{
+    if(el.value){
+      var converted = toEnglishDigits(String(el.value));
+      if(converted !== el.value) el.value = converted;
+    }
+  });
+}
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if((el.tagName === 'INPUT' && (el.type === 'number' || el.type === 'text')) ||
+     el.tagName === 'TEXTAREA'){
+    var pos = el.selectionStart;
+    var oldVal = el.value;
+    var newVal = toEnglishDigits(oldVal);
+    if(newVal !== oldVal){
+      el.value = newVal;
+      try{ el.setSelectionRange(pos, pos); }catch(e){}
+      el.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  }
+}, true);
+</script>
+
+</body>
+</html>
