@@ -183,6 +183,34 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 .trow.orange .tval{color:var(--warn)}
 .trow.info .tval{color:var(--tl)}
 /* ===== PAYMENTS ===== */
+
+/* ── دوائر اختيار الكاشيرات ── */
+.cashier-picker{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.picker-label{font-size:13px;color:var(--tl);font-weight:600;white-space:nowrap}
+.picker-circles{display:flex;gap:7px;flex-wrap:wrap}
+.picker-circle{
+  width:40px;height:40px;border-radius:50%;
+  background:#e8f0fe;border:2.5px solid #b0c4de;
+  color:#1a3a5c;font-size:16px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:.2s;user-select:none;
+  line-height:1;
+}
+.picker-circle.active{
+  background:#0d3b6e;border-color:#0d3b6e;color:#ffffff;
+  box-shadow:0 3px 12px rgba(13,59,110,.45);
+  transform:scale(1.12);
+}
+.picker-circle:hover:not(.active){
+  background:#c7daf5;border-color:#1a5c9a;color:#0d3b6e;
+}
+.add-row-btn{width:100%;margin:6px 0 2px;padding:7px;background:#f0f7ff;border:1.5px dashed var(--p2);border-radius:8px;color:var(--p2);font-size:14px;font-weight:700;cursor:pointer;transition:.2s}
+.add-row-btn:active{background:#dbeafe}
+.del-row-btn{width:28px;height:28px;background:#fee2e2;border:none;border-radius:6px;color:#dc2626;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.del-row-btn:active{background:#fca5a5}
+.arow{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.arow .pi-desc{flex:1}
+.arow .pi-amt{width:100px;text-align:center;direction:ltr}
 .pay-hdr{display:flex;gap:5px;margin-bottom:5px;padding:0 2px}
 .pay-hdr span{font-size:10px;color:var(--tl);font-weight:700;text-align:center}
 .prow{display:flex;gap:5px;margin-bottom:6px}
@@ -267,6 +295,13 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 #parea{display:none}
 #p-img-section{display:none}
 @media print{
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { margin: 0 !important; }
+  .card { page-break-inside: avoid !important; break-inside: avoid !important; }
+  #payment-rows .prow { page-break-inside: avoid !important; break-inside: avoid !important; }
+  #addition-rows .arow { page-break-inside: avoid !important; break-inside: avoid !important; }
+  .pg-break { display: none !important; page-break-before: avoid !important; }
+
   @page{margin:10mm 8mm;size:A4 portrait}
   body{padding:0 !important;margin:0}
   .hdr,.bnav,.support-bar,.setup-screen,.pg,.toast,.progress-overlay{display:none !important}
@@ -274,7 +309,7 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
   #p-page1{}
   /* إظهار قسم الصور خارج parea */
   #p-img-section{display:block !important;margin:0;padding:0;line-height:0;font-size:0}
-  .pg-break{page-break-before:always;margin:0;padding:0;height:0}
+  .pg-break{display:none;margin:0;padding:0;height:0}
   .p-img-page{margin:0;padding:0;overflow:hidden;page-break-inside:avoid}
   /* جداول واضحة */
   .p-tbl th{font-weight:900}
@@ -476,6 +511,11 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 
   <div class="card">
     <div class="card-h"><span class="ico">🖥️</span> مبيعات الكاشيرات</div>
+    <!-- دوائر اختيار عدد الكاشيرات -->
+    <div class="cashier-picker" id="cashier-picker">
+      <span class="picker-label">عدد الكاشيرات:</span>
+      <div class="picker-circles" id="picker-circles"></div>
+    </div>
     <table class="ctbl">
       <thead><tr>
         <th style="width:20%">الكاشير</th>
@@ -499,16 +539,13 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
   <!-- ADDITIONS CARD -->
   <div class="card" id="add-card">
     <div class="card-h"><span class="ico">➕</span> إضافات للصندوق</div>
-    <div class="row2" style="align-items:flex-end">
-      <div class="fg" style="flex:2">
-        <label class="fl">البيان / السبب</label>
-        <input type="text" class="fc" id="inp-add-desc" placeholder="مثال: فائض من أمس، مبلغ إضافي...">
-      </div>
-      <div class="fg" style="flex:1">
-        <label class="fl">المبلغ (ر.س)</label>
-        <input type="number" class="fc" id="inp-add-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()" style="text-align:center;direction:ltr">
-      </div>
+    <div class="pay-hdr" id="addition-hdr" style="display:none">
+      <span style="flex:1;text-align:right;padding-right:4px">البيان / السبب</span>
+      <span style="width:100px">المبلغ (ر.س)</span>
+      <span style="width:32px"></span>
     </div>
+    <div id="addition-rows"></div>
+    <button class="add-row-btn" onclick="addAdditionRow()">＋ إضافة سطر</button>
     <div class="trow" style="margin-top:4px;background:#f0f7ff;border-radius:8px;padding:8px 10px">
       <span class="tlbl" style="color:var(--p2);font-weight:700">➕ إجمالي الإضافات</span>
       <span class="tval" id="t-add" style="color:var(--p2)">0.00 <span class="unit">ر.س</span></span>
@@ -517,21 +554,26 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 
   <div class="card">
     <div class="card-h"><span class="ico">💸</span> المدفوعات من الصندوق</div>
-    <div class="pay-hdr">
+    <div class="pay-hdr" id="payment-hdr" style="display:none">
       <span style="width:62px">رقم السند</span>
       <span style="flex:1;text-align:right;padding-right:4px">البيان / التفاصيل</span>
       <span style="width:82px">المبلغ</span>
     </div>
     <div id="payment-rows"></div>
+    <button class="add-row-btn" onclick="addPaymentRow()">＋ إضافة سطر</button>
     <div class="trow red" style="margin-top:4px"><span class="tlbl">إجمالي المدفوعات (-)</span><span class="tval" id="t-pay">0.00 <span class="unit">ر.س</span></span></div>
   </div>
 
   <div class="card">
     <div class="card-h"><span class="ico">🏦</span> الإيداع والرصيد النهائي</div>
-    <div class="fg">
-      <label class="fl">مبلغ الإيداع البنكي (-)</label>
-      <input type="number" class="fc" id="inp-dep" placeholder="0.00" min="0" step="0.01" oninput="calc()">
+    <div class="pay-hdr" id="deposit-hdr" style="display:none">
+      <span style="flex:1;text-align:right;padding-right:4px">البيان / البنك</span>
+      <span style="width:120px">المبلغ (ر.س)</span>
+      <span style="width:32px"></span>
     </div>
+    <div id="deposit-rows"></div>
+    <button class="add-row-btn" onclick="addDepositRow()">＋ إضافة إيداع</button>
+    <div class="trow orange" style="margin-top:4px"><span class="tlbl">إجمالي الإيداع البنكي (-)</span><span class="tval" id="t-dep-total">0.00 <span class="unit">ر.س</span></span></div>
     <div class="trow orange"><span class="tlbl">إجمالي الخارج من الصندوق</span><span class="tval" id="t-out">0.00 <span class="unit">ر.س</span></span></div>
     <div class="trow hi" style="border:2px solid rgba(10,124,92,.25);margin-top:6px">
       <span class="tlbl">✅ الرصيد الباقي في الصندوق</span>
@@ -923,7 +965,7 @@ function onDateChange(userTriggered){
     calc();
     return;
   }
-  // ✅ منع تاريخ أقدم من 4 أيام في وضع الإدخال الجديد (ليس التعديل)
+  // ✅ منع تاريخ أقدم من 3 أيام في وضع الإدخال الجديد (ليس التعديل)
   const diffDays = Math.round((t - sel) / 86400000);
   if(diffDays > 3){
     // أعد التاريخ لليوم
@@ -931,7 +973,7 @@ function onDateChange(userTriggered){
     document.getElementById('inp-date').value = `${y2}-${m2}-${d2}`;
     // رسالة توضيحية تظهر 3 ثوان
     toastTimed(
-      '🔒 لا يمكن إدخال بيانات لتاريخ أقدم من 4 أيام — ' +
+      '🔒 لا يمكن إدخال بيانات لتاريخ أقدم من 3 أيام — ' +
       'ادخل إلى السجلات، اختر اليوم المطلوب ثم اضغط "تعديل"',
       'warn', 3000
     );
@@ -1006,10 +1048,19 @@ function rechainRecords(fromDate){
     // إعادة حساب الإجماليات من بيانات السجل الأصلية
     const totalCash   = (r.cashiers||[]).reduce((s,c) => s + (parseFloat(c.cash)||0), 0);
     const totalNet    = (r.cashiers||[]).reduce((s,c) => s + (parseFloat(c.network)||0), 0);
-    const addAmt      = parseFloat(r.additionAmt) || 0;
+    // قراءة الإضافات: مصفوفة جديدة أو قيمة قديمة
+    const addAmt = r.additionRows && r.additionRows.length
+      ? r.additionRows.reduce((s,a) => s + (parseFloat(a.amt)||0), 0)
+      : (parseFloat(r.additionAmt) || 0);
     const grandTotal  = openingBal + totalCash + addAmt;
-    const totalPay    = (r.payments||[]).reduce((s,p) => s + (parseFloat(p.amount)||0), 0);
-    const dep         = parseFloat(r.deposit) || 0;
+    // قراءة المدفوعات: paymentRows جديدة أو payments قديمة
+    const totalPay = r.paymentRows && r.paymentRows.length
+      ? r.paymentRows.reduce((s,p) => s + (parseFloat(p.amt)||0), 0)
+      : (r.payments||[]).reduce((s,p) => s + (parseFloat(p.amount)||0), 0);
+    // قراءة الإيداع: depositRows جديدة أو deposit قديم
+    const dep = r.depositRows && r.depositRows.length
+      ? r.depositRows.reduce((s,d) => s + (parseFloat(d.amt)||0), 0)
+      : (parseFloat(r.deposit) || 0);
     const totalOut    = totalPay + dep;
     const finalBal    = grandTotal - totalOut;
 
@@ -1031,14 +1082,14 @@ function clearFormFields(){
     const ne=document.getElementById(`c${num}-net`);
     if(c) c.value=''; if(ne) ne.value='';
   });
-  for(let i=1;i<=5;i++){
-    ['no','desc','amt'].forEach(k=>{
-      const el=document.getElementById(`p${i}-${k}`); if(el) el.value='';
-    });
-  }
-  document.getElementById('inp-dep').value='';
-  document.getElementById('inp-add-desc').value='';
-  document.getElementById('inp-add-amt').value='';
+  renderPaymentRows([]);
+  renderDepositRows([]);
+  _selectedCashiers = new Set(settings.activeCashiers||[]);
+  initCashierPicker();
+  rebuildCashierRows();
+  renderAdditionRows([]);
+  renderPaymentRows([]);
+  renderDepositRows([]);
   posImages=[];
   renderImages();
   calc();
@@ -1046,9 +1097,9 @@ function clearFormFields(){
 
 function fillFormFromRecord(r){
   document.getElementById('inp-invno').value = String(r.invNo||0).padStart(6,'0');
-  document.getElementById('inp-dep').value = (r.deposit||0).toFixed(2);
-  document.getElementById('inp-add-desc').value = r.additionDesc||'';
-  document.getElementById('inp-add-amt').value = (r.additionAmt||0)||'';
+  renderDepositRows(r.depositRows || (r.deposit ? [{desc:'إيداع بنكي', amt:parseFloat(r.deposit)||0}] : []));
+  renderAdditionRows(r.additionRows||[{desc:r.additionDesc||'',amt:r.additionAmt||0}]);
+  renderPaymentRows(r.paymentRows||[]);
   // ✅ الرصيد الافتتاحي الصحيح = الرصيد النهائي للسجل السابق (وليس القيمة المخزنة)
   sessionOpeningBalance = getPrevDayBalance(r.date, r.id);
   applyOpeningBalance();
@@ -1077,18 +1128,9 @@ function fillFormFromRecord(r){
     // لا يوجد كاشيرات في السجل — استخدم الإعدادات الحالية
     renderCashierRows();
   }
-  // Clear then fill payments
-  for(let i=1;i<=5;i++){
-    document.getElementById(`p${i}-no`).value='';
-    document.getElementById(`p${i}-desc`).value='';
-    document.getElementById(`p${i}-amt`).value='';
-  }
-  (r.payments||[]).forEach((p,i)=>{
-    if(i>=5) return;
-    document.getElementById(`p${i+1}-no`).value=p.no||'';
-    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
-    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
-  });
+  // تحميل المدفوعات ديناميكياً
+  const legacyPay = (r.payments||[]).map(p=>({no:p.no||'',desc:p.desc||'',amt:parseFloat(p.amount)||0}));
+  renderPaymentRows(r.paymentRows && r.paymentRows.length ? r.paymentRows : legacyPay);
   posImages = r.images ? [...r.images] : [];
   renderImages();
   calc();
@@ -1117,19 +1159,15 @@ function autoSave(){
       }
     }
   });
-  const payments=[];
-  for(let i=1;i<=5;i++){
-    const no=document.getElementById(`p${i}-no`)?.value||'';
-    const desc=document.getElementById(`p${i}-desc`)?.value||'';
-    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
-    if(no||desc||amt) payments.push({no,desc,amount:amt});
-  }
+  const payments = getPaymentRows().map(r=>({no:r.no||'',desc:r.desc||'',amount:parseFloat(r.amt)||0}));
   const record={
     id: records.find(r=>r.date===date)?.id || Date.now(),
     invNo, date,
     branchName:settings.branchName,
     openingBalance:vals.prev,
-    additionDesc:document.getElementById('inp-add-desc')?.value||'',
+    additionRows:getAdditionRows(),
+    paymentRows:getPaymentRows(),
+    depositRows:getDepositRows(),
     additionAmt:vals.addAmt,
     cashiers, payments,
     deposit:vals.dep,
@@ -1177,8 +1215,8 @@ function refreshDateMax(){
   const d = String(t.getDate()).padStart(2,'0');
   const inp = document.getElementById('inp-date');
   inp.max = `${y}-${m}-${d}`;
-  // ✅ الحد الأدنى = 4 أيام ماضية (لمنع اختيار تاريخ أقدم من picker مباشرة)
-  const minDate = new Date(t); minDate.setDate(minDate.getDate() - 4);
+  // ✅ الحد الأدنى = 3 أيام ماضية (لمنع اختيار تاريخ أقدم من picker مباشرة)
+  const minDate = new Date(t); minDate.setDate(minDate.getDate() - 3);
   const my = minDate.getFullYear();
   const mm = String(minDate.getMonth()+1).padStart(2,'0');
   const md = String(minDate.getDate()).padStart(2,'0');
@@ -1261,34 +1299,188 @@ function saveToStorage(){
   _storageSet('asalat_records', JSON.stringify(records));
 }
 
+
+// ============================================================
+// CASHIER PICKER - دوائر اختيار الكاشيرات
+// ============================================================
+let _selectedCashiers = new Set();
+
+function initCashierPicker(){
+  const container = document.getElementById('picker-circles');
+  if(!container) return;
+  container.innerHTML = '';
+  const maxCashiers = 6;
+  for(let i = 1; i <= maxCashiers; i++){
+    const c = document.createElement('div');
+    c.className = 'picker-circle' + (_selectedCashiers.has(i) ? ' active' : '');
+    c.textContent = i;
+    c.onclick = () => toggleCashierPicker(i);
+    c.id = 'picker-c-' + i;
+    container.appendChild(c);
+  }
+}
+
+function toggleCashierPicker(num){
+  if(_selectedCashiers.has(num)){
+    _selectedCashiers.delete(num);
+  } else {
+    _selectedCashiers.add(num);
+  }
+  // تحديث settings.activeCashiers
+  settings.activeCashiers = [..._selectedCashiers];
+  // تحديث مظهر الدوائر
+  for(let i=1;i<=6;i++){
+    const el = document.getElementById('picker-c-'+i);
+    if(el) el.className = 'picker-circle' + (_selectedCashiers.has(i) ? ' active' : '');
+  }
+  // إعادة بناء صفوف الكاشيرات مع الحفاظ على القيم الموجودة
+  rebuildCashierRows();
+}
+
+function rebuildCashierRows(){
+  // حفظ القيم الحالية
+  const savedVals = {};
+  document.querySelectorAll('#cashier-rows tr').forEach(row => {
+    const cashEl = row.querySelector('[id$="-cash"]');
+    const netEl  = row.querySelector('[id$="-net"]');
+    if(cashEl){ const m = cashEl.id.match(/c(\d+)-cash/); if(m) savedVals[m[1]] = {cash: cashEl.value, net: netEl?.value||''}; }
+  });
+  // إعادة البناء
+  const tbody = document.getElementById('cashier-rows');
+  tbody.innerHTML = '';
+  const sorted = [..._selectedCashiers].sort((a,b)=>a-b);
+  if(sorted.length === 0){
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:14px">اختر الكاشيرات من الأرقام أعلاه</td></tr>';
+    calc(); return;
+  }
+  sorted.forEach(num => {
+    const sv = savedVals[num] || {cash:'', net:''};
+    tbody.innerHTML += `<tr>
+      <td class="cname">كاشير<br>${num}</td>
+      <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${sv.cash}"></td>
+      <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${sv.net}"></td>
+    </tr>`;
+  });
+  calc();
+}
+
+// ============================================================
+// DEPOSIT ROWS - صفوف الإيداع الديناميكية
+// ============================================================
+let _depCount = 0;
+
+function addDepositRow(desc='', amt=''){
+  _depCount++;
+  const id = _depCount;
+  const div = document.getElementById('deposit-rows');
+  const row = document.createElement('div');
+  row.className = 'arow'; row.id = 'dep-row-'+id;
+  row.innerHTML = `<input class="pi-desc fc" type="text" id="dr${id}-desc" placeholder="البيان / البنك" value="${desc}" style="flex:1">
+    <input class="pi-amt fc" type="number" id="dr${id}-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${amt}" style="width:120px;text-align:center;direction:ltr">
+    <button class="del-row-btn" onclick="delRowAndCheck('dep-row-${id}','deposit-rows','deposit-hdr')">✕</button>`;
+  div.appendChild(row);
+  document.getElementById('deposit-hdr').style.display = 'flex';
+  calc();
+}
+
+function renderDepositRows(rows){
+  _depCount = 0;
+  document.getElementById('deposit-rows').innerHTML = '';
+  const hdr = document.getElementById('deposit-hdr');
+  if(rows && rows.length){
+    rows.forEach(r => addDepositRow(r.desc||'', r.amt||''));
+  } else {
+    if(hdr) hdr.style.display = 'none';
+  }
+}
+
+function getDepositRows(){
+  const rows = [];
+  document.querySelectorAll('#deposit-rows .arow').forEach(row => {
+    const desc = row.querySelector('[id^="dr"][id$="-desc"]')?.value||'';
+    const amt  = parseFloat(row.querySelector('[id^="dr"][id$="-amt"]')?.value)||0;
+    if(desc||amt) rows.push({desc, amt});
+  });
+  return rows;
+}
+
 // ============================================================
 // CASHIER ROWS
 // ============================================================
 function renderCashierRows(){
-  const tbody = document.getElementById('cashier-rows');
-  tbody.innerHTML = '';
-  if(!settings.activeCashiers || settings.activeCashiers.length === 0){
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:14px">لا يوجد كاشيرات نشطة</td></tr>';
-    return;
-  }
-  [...settings.activeCashiers].sort((a,b)=>a-b).forEach(num=>{
-    tbody.innerHTML += `<tr>
-      <td class="cname">كاشير<br>${num}</td>
-      <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
-      <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
-    </tr>`;
-  });
+  // تزامن _selectedCashiers مع settings.activeCashiers
+  _selectedCashiers = new Set(settings.activeCashiers || []);
+  initCashierPicker();
+  rebuildCashierRows();
 }
 
-function renderPaymentRows(){
+// ── عداد صفوف ديناميكية ──
+let _payCount = 0;
+let _addCount = 0;
+
+function addPaymentRow(no='', desc='', amt=''){
+  _payCount++;
+  const id = _payCount;
   const div = document.getElementById('payment-rows');
-  div.innerHTML = '';
-  for(let i=1;i<=5;i++){
-    div.innerHTML += `<div class="prow">
-      <input class="pi-no" type="text" id="p${i}-no" placeholder="رقم">
-      <input class="pi-desc" type="text" id="p${i}-desc" placeholder="البيان">
-      <input class="pi-amt" type="number" id="p${i}-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()">
-    </div>`;
+  const row = document.createElement('div');
+  row.className = 'prow'; row.id = 'pay-row-'+id;
+  row.innerHTML = `<input class="pi-no" type="text" id="pr${id}-no" placeholder="رقم" value="${no}">
+    <input class="pi-desc" type="text" id="pr${id}-desc" placeholder="البيان" value="${desc}">
+    <input class="pi-amt" type="number" id="pr${id}-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${amt}" style="text-align:center;direction:ltr">
+    <button class="del-row-btn" onclick="delRowAndCheck('pay-row-${id}','payment-rows','payment-hdr')">✕</button>`;
+  div.appendChild(row);
+  document.getElementById('payment-hdr').style.display = 'flex';
+  calc();
+}
+
+function addAdditionRow(desc='', amt=''){
+  _addCount++;
+  const id = _addCount;
+  const div = document.getElementById('addition-rows');
+  const row = document.createElement('div');
+  row.className = 'arow'; row.id = 'add-row-'+id;
+  row.innerHTML = `<input class="pi-desc fc" type="text" id="ar${id}-desc" placeholder="البيان / السبب" value="${desc}" style="flex:1">
+    <input class="pi-amt fc" type="number" id="ar${id}-amt" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${amt}" style="width:100px;text-align:center;direction:ltr">
+    <button class="del-row-btn" onclick="delRowAndCheck('add-row-${id}','addition-rows','addition-hdr')">✕</button>`;
+  div.appendChild(row);
+  document.getElementById('addition-hdr').style.display = 'flex';
+  calc();
+}
+
+function delRow(rowId){
+  const el = document.getElementById(rowId);
+  if(el){ el.remove(); calc(); }
+}
+
+function delRowAndCheck(rowId, containerId, headerId){
+  const el = document.getElementById(rowId);
+  if(el){ el.remove(); calc(); }
+  const container = document.getElementById(containerId);
+  const hdr = document.getElementById(headerId);
+  if(hdr && container && container.children.length === 0){
+    hdr.style.display = 'none';
+  }
+}
+
+function renderPaymentRows(rows){
+  _payCount = 0;
+  document.getElementById('payment-rows').innerHTML = '';
+  const hdr = document.getElementById('payment-hdr');
+  if(rows && rows.length){
+    rows.forEach(r => addPaymentRow(r.no||'', r.desc||'', r.amt||''));
+  } else {
+    if(hdr) hdr.style.display = 'none';
+  }
+}
+
+function renderAdditionRows(rows){
+  _addCount = 0;
+  document.getElementById('addition-rows').innerHTML = '';
+  const hdr = document.getElementById('addition-hdr');
+  if(rows && rows.length){
+    rows.forEach(r => addAdditionRow(r.desc||'', r.amt||''));
+  } else {
+    if(hdr) hdr.style.display = 'none';
   }
 }
 
@@ -1305,14 +1497,27 @@ function calc(){
     if(cashEl) totalCash += parseFloat(cashEl.value)||0;
     if(netEl)  totalNet  += parseFloat(netEl.value)||0;
   });
-  const addAmt = parseFloat(document.getElementById('inp-add-amt')?.value)||0;
+  // إضافات ديناميكية
+  let addAmt = 0;
+  document.querySelectorAll('#addition-rows .arow').forEach(row => {
+    addAmt += parseFloat(row.querySelector('[id$="-amt"]')?.value)||0;
+  });
   const grandTotal = prev + totalCash + addAmt;
+  // مدفوعات ديناميكية
   let totalPay=0;
-  for(let i=1;i<=5;i++) totalPay += parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
-  const dep = parseFloat(document.getElementById('inp-dep').value)||0;
+  document.querySelectorAll('#payment-rows .prow').forEach(row => {
+    totalPay += parseFloat(row.querySelector('[id$="-amt"]')?.value)||0;
+  });
+  const f = v => n(v) + ' <span class="unit">ر.س</span>';
+  // إيداع ديناميكي
+  let dep = 0;
+  document.querySelectorAll('#deposit-rows .arow').forEach(row => {
+    dep += parseFloat(row.querySelector('[id^="dr"][id$="-amt"]')?.value)||0;
+  });
+  if(document.getElementById('t-dep-total'))
+    document.getElementById('t-dep-total').innerHTML = f(dep);
   const totalOut = totalPay + dep;
   const finalBal = grandTotal - totalOut;
-  const f = v => n(v) + ' <span class="unit">ر.س</span>';
   document.getElementById('t-cash').innerHTML  = f(totalCash);
   document.getElementById('t-net').innerHTML   = f(totalNet);
   document.getElementById('t-prev').innerHTML  = f(prev);
@@ -1327,6 +1532,27 @@ function calc(){
   return {totalCash, totalNet, prev, addAmt, grandTotal, totalPay, dep, totalOut, finalBal};
 }
 
+
+// ── قراءة بيانات الصفوف الديناميكية ──
+function getAdditionRows(){
+  const rows = [];
+  document.querySelectorAll('#addition-rows .arow').forEach(row => {
+    const desc = row.querySelector('[id$="-desc"]')?.value||'';
+    const amt  = parseFloat(row.querySelector('[id$="-amt"]')?.value)||0;
+    if(desc||amt) rows.push({desc, amt});
+  });
+  return rows;
+}
+function getPaymentRows(){
+  const rows = [];
+  document.querySelectorAll('#payment-rows .prow').forEach(row => {
+    const no   = row.querySelector('[id$="-no"]')?.value||'';
+    const desc = row.querySelector('[id$="-desc"]')?.value||'';
+    const amt  = parseFloat(row.querySelector('[id$="-amt"]')?.value)||0;
+    if(no||desc||amt) rows.push({no, desc, amt});
+  });
+  return rows;
+}
 // ============================================================
 // SAVE RECORD
 // ============================================================
@@ -1454,7 +1680,8 @@ function fillPrintArea(){
   document.getElementById('ps-total-sales').textContent=n(vals.totalCash+vals.totalNet);
   document.getElementById('ps-prev').textContent=n(vals.prev);
   if(vals.addAmt>0){
-    const addDesc=document.getElementById('inp-add-desc').value||'إضافات';
+    const addDescs=getAdditionRows().map(r=>r.desc||'إضافة').join('، ')||'إضافات';
+    const addDesc=addDescs;
     document.getElementById('ps-add-label').textContent=addDesc+' (+)';
     document.getElementById('ps-add').textContent=n(vals.addAmt);
     document.getElementById('ps-add-row').style.display='flex';
@@ -1463,7 +1690,22 @@ function fillPrintArea(){
   }
   document.getElementById('ps-grand').textContent=n(vals.grandTotal);
   document.getElementById('ps-pay').textContent=n(vals.totalPay);
-  document.getElementById('ps-dep').textContent=n(vals.dep);
+  // طباعة صفوف الإيداع
+(()=>{
+  const depEl = document.getElementById('ps-dep');
+  const depRows = getDepositRows();
+  if(depRows.length <= 1){
+    if(depEl) depEl.textContent = n(vals.dep);
+  } else {
+    const parent = depEl?.closest('.trow');
+    if(parent){
+      let extra = '';
+      depRows.forEach((r,i)=>{ extra += `<div class="trow" style="font-size:12px;padding:3px 10px"><span class="tlbl" style="color:#64748b">${r.desc||'إيداع '+(i+1)}</span><span class="tval">${n(r.amt)}</span></div>`; });
+      parent.insertAdjacentHTML('afterend', extra);
+    }
+    if(depEl) depEl.textContent = n(vals.dep);
+  }
+})();
   document.getElementById('ps-out').textContent=n(vals.totalOut);
   document.getElementById('ps-final').textContent=n(vals.finalBal);
 
@@ -1471,13 +1713,13 @@ function fillPrintArea(){
   const noteSection = document.getElementById('p-note-section');
   const noteText    = document.getElementById('p-note-text');
 
-  // ✅ الملاحظة الشاملة: كل التغييرات في السجلات (آخر 4 أيام فقط)
+  // ✅ الملاحظة الشاملة: كل التغييرات في السجلات (آخر 3 أيام فقط)
   const currentDate   = date;
   const currentInvNo  = document.getElementById('inp-invno')?.value || '';
-  const currentAddAmt = parseFloat(document.getElementById('inp-add-amt')?.value) || 0;
-  const currentAddDsc = document.getElementById('inp-add-desc')?.value || '';
+  const currentAddAmt = (()=>{ let s=0; document.querySelectorAll('#addition-rows .arow').forEach(r=>{ s+=parseFloat(r.querySelector('[id$="-amt"]')?.value)||0; }); return s; })();
+  const currentAddDsc = getAdditionRows().map(r=>r.desc||'').filter(Boolean).join('، ') || '';
 
-  // حساب حد 4 أيام
+  // حساب حد 3 أيام
   const todayD = new Date(); todayD.setHours(0,0,0,0);
   const cutoff = new Date(todayD); cutoff.setDate(cutoff.getDate()-3);
 
@@ -1489,7 +1731,9 @@ function fillPrintArea(){
     const sep   = `<hr style="margin:2px 0;border:none;border-top:1px dashed #e2c46d">`;
 
     // ① إضافة/طرح مبلغ (حقل الإضافات)
-    const addAmt = parseFloat(r.additionAmt)||0;
+    const addAmt = r.additionRows && r.additionRows.length
+      ? r.additionRows.reduce((s,a)=>s+(parseFloat(a.amt)||0),0)
+      : (parseFloat(r.additionAmt)||0);
     if(addAmt !== 0){
       const sign = addAmt>0?'+':'';
       const op   = addAmt>0 ? '➕ إضافة مبلغ للصندوق' : '➖ طرح مبلغ من الصندوق';
@@ -1504,7 +1748,9 @@ function fillPrintArea(){
     }
 
     // ③ مدفوعات من الصندوق
-    const pays = (r.payments||[]).filter(p=>parseFloat(p.amount)>0);
+    const pays = r.paymentRows && r.paymentRows.length
+      ? r.paymentRows.filter(p=>parseFloat(p.amt)>0).map(p=>({no:p.no,desc:p.desc,amount:p.amt}))
+      : (r.payments||[]).filter(p=>parseFloat(p.amount)>0);
     if(pays.length>0){
       const total = pays.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
       const details = pays.map(p=>`${p.desc||'بدون بيان'} (${n(parseFloat(p.amount))} ر.س)`).join('، ');
@@ -1516,7 +1762,7 @@ function fillPrintArea(){
 
   const allNoteLines = [];
 
-  // ① السجلات المحفوظة ضمن آخر 4 أيام (غير السجل الحالي)
+  // ① السجلات المحفوظة ضمن آخر 3 أيام (غير السجل الحالي)
   const recentRecs = (records||[])
     .filter(r => {
       const d = new Date(r.date+'T00:00:00');
@@ -1537,11 +1783,13 @@ function fillPrintArea(){
     // مدفوعات الفاتورة الحالية
     const curPays = [];
     for(let i=1;i<=5;i++){
-      const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
-      const desc=(document.getElementById(`p${i}-desc`)?.value||'').trim();
+      const _pr = document.getElementById(`pr${i}-amt`);
+      const amt = parseFloat(_pr?.value)||0;
+      const _pd = document.getElementById(`pr${i}-desc`);
+      const desc = (_pd?.value||'').trim();
       if(amt>0) curPays.push({amount:amt,desc});
     }
-    const curDep  = parseFloat(document.getElementById('inp-dep')?.value)||0;
+    const curDep  = (()=>{ let s=0; document.querySelectorAll('#deposit-rows .arow').forEach(r=>{ s+=parseFloat(r.querySelector('[id^="dr"][id$="-amt"]')?.value)||0; }); return s; })();
     const invLabel= currentInvNo ? `سند <strong>${currentInvNo}</strong>` : '';
 
     if(currentAddAmt !== 0){
@@ -1568,16 +1816,29 @@ function fillPrintArea(){
 
     // من السجلات المحفوظة
     recentRecs.forEach(r => {
-      netTotal += parseFloat(r.additionAmt)||0;          // إضافة (+) أو طرح (-)
-      netTotal -= parseFloat(r.deposit)||0;               // إيداع بنكي (-)
-      (r.payments||[]).forEach(p => netTotal -= parseFloat(p.amount)||0); // مدفوعات (-)
+      // إضافات
+      const rAddAmt = r.additionRows && r.additionRows.length
+        ? r.additionRows.reduce((s,a)=>s+(parseFloat(a.amt)||0),0)
+        : (parseFloat(r.additionAmt)||0);
+      netTotal += rAddAmt;
+      // إيداع
+      const rDep = r.depositRows && r.depositRows.length
+        ? r.depositRows.reduce((s,d)=>s+(parseFloat(d.amt)||0),0)
+        : (parseFloat(r.deposit)||0);
+      netTotal -= rDep;
+      // مدفوعات
+      if(r.paymentRows && r.paymentRows.length){
+        r.paymentRows.forEach(p => netTotal -= parseFloat(p.amt)||0);
+      } else {
+        (r.payments||[]).forEach(p => netTotal -= parseFloat(p.amount)||0);
+      }
     });
 
     // من الفاتورة الحالية
     if(new Date(currentDate+'T00:00:00') >= cutoff){
       netTotal += currentAddAmt;
-      netTotal -= parseFloat(document.getElementById('inp-dep')?.value)||0;
-      for(let i=1;i<=5;i++) netTotal -= parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+      netTotal -= (()=>{ let s=0; document.querySelectorAll('#deposit-rows .arow').forEach(r=>{ s+=parseFloat(r.querySelector('[id^="dr"][id$="-amt"]')?.value)||0; }); return s; })();
+      getPaymentRows().forEach(p => netTotal -= parseFloat(p.amt)||0);
     }
 
     const netSign   = netTotal >= 0 ? '+' : '';
@@ -1598,13 +1859,14 @@ function fillPrintArea(){
       totalLine;
   } else {
     noteSection.className = 'p-note-none';
-    noteText.textContent = 'لا توجد ملاحظات على الـ 4 أيام الماضية.';
+    noteText.textContent = 'لا توجد ملاحظات على الـ 3 أيام الماضية.';
   }
   let payRows=''; let hasP=false;
   for(let i=1;i<=5;i++){
-    const no=document.getElementById(`p${i}-no`)?.value||'';
-    const desc=document.getElementById(`p${i}-desc`)?.value||'';
-    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    const _row=document.getElementById(`pay-row-${i}`);
+    const no=_row?.querySelector('[id$="-no"]')?.value||'';
+    const desc=_row?.querySelector('[id$="-desc"]')?.value||'';
+    const amt=parseFloat(_row?.querySelector('[id$="-amt"]')?.value)||0;
     if(no||desc||amt){hasP=true;payRows+=`<tr><td>${no||'-'}</td><td>${desc||'-'}</td><td>${n(amt)}</td></tr>`;}
   }
   if(!hasP) payRows='<tr><td colspan="3" style="text-align:center;color:#aaa">لا توجد مدفوعات</td></tr>';
@@ -1870,10 +2132,10 @@ function renderHistory(){
   div.innerHTML=sorted.map(r=>{
     const recDate=new Date(r.date+'T00:00:00');
     const diffDays=Math.round((today-recDate)/86400000);
-    const editable=diffDays>=0&&diffDays<=4;
+    const editable=diffDays>=0&&diffDays<=3;
     const editBtn=editable
       ? `<button class="hitem-edit" onclick="editRecord(${r.id},event)">✏️ تعديل</button>`
-      : `<span class="hitem-locked" title="لا يمكن التعديل بعد 4 أيام">🔒 مغلق</span>`;
+      : `<span class="hitem-locked" title="لا يمكن التعديل بعد 3 أيام">🔒 مغلق</span>`;
     return `
     <div class="hitem">
       <div class="hitem-top" onclick="loadRecord(${r.id})">
@@ -1897,9 +2159,9 @@ function renderHistory(){
 function _fillFormFromRec(r){
   document.getElementById('inp-date').value=r.date;
   document.getElementById('inp-invno').value=String(r.invNo||0).padStart(6,'0');
-  document.getElementById('inp-dep').value=(r.deposit||0).toFixed(2);
-  document.getElementById('inp-add-desc').value=r.additionDesc||'';
-  document.getElementById('inp-add-amt').value=(r.additionAmt||0)||'';
+  renderDepositRows(r.depositRows || (r.deposit ? [{desc:'إيداع بنكي', amt:parseFloat(r.deposit)||0}] : []));
+  renderAdditionRows(r.additionRows||[{desc:r.additionDesc||'',amt:r.additionAmt||0}]);
+  renderPaymentRows(r.paymentRows||[]);
   for(let i=1;i<=6;i++){
     const ce=document.getElementById(`c${i}-cash`),ne=document.getElementById(`c${i}-net`);
     if(ce)ce.value='';if(ne)ne.value='';
@@ -1908,17 +2170,8 @@ function _fillFormFromRec(r){
     const ce=document.getElementById(`c${c.id}-cash`),ne=document.getElementById(`c${c.id}-net`);
     if(ce)ce.value=c.cash||'';if(ne)ne.value=c.network||'';
   });
-  for(let i=1;i<=5;i++){
-    document.getElementById(`p${i}-no`).value='';
-    document.getElementById(`p${i}-desc`).value='';
-    document.getElementById(`p${i}-amt`).value='';
-  }
-  (r.payments||[]).forEach((p,i)=>{
-    if(i>=5)return;
-    document.getElementById(`p${i+1}-no`).value=p.no||'';
-    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
-    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
-  });
+  const _ep1=(r.payments||[]).map(p=>({no:p.no||'',desc:p.desc||'',amt:parseFloat(p.amount)||0}));
+  renderPaymentRows(r.paymentRows&&r.paymentRows.length?r.paymentRows:_ep1);
   posImages=r.images?[...r.images]:[];
   renderImages();
   sessionOpeningBalance=getPrevDayBalance(r.date,r.id);
@@ -1948,7 +2201,7 @@ function loadRecord(id){
   vmb.style.display='block';
   document.getElementById('view-banner-text').textContent=`عرض سجل — ${formatDateEn(r.date)} — سند #${String(r.invNo||0).padStart(6,'0')}`;
 
-  // هل هذا السجل قابل للتعديل (آخر 4 أيام)؟
+  // هل هذا السجل قابل للتعديل (آخر 3 أيام)؟
   const editBtn=document.getElementById('view-edit-btn');
   if(canEditRecord(r.date)){
     editBtn.style.display='inline-block';
@@ -1959,12 +2212,12 @@ function loadRecord(id){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// هل يمكن تعديل سجل بهذا التاريخ؟ (فقط آخر 4 أيام)
+// هل يمكن تعديل سجل بهذا التاريخ؟ (فقط آخر 3 أيام)
 function canEditRecord(dateStr){
   const today=new Date(); today.setHours(0,0,0,0);
   const rec=new Date(dateStr+'T00:00:00');
   const diffDays=Math.round((today-rec)/(86400000));
-  return diffDays>=0 && diffDays<=4;
+  return diffDays>=0 && diffDays<=3;
 }
 
 // إغلاق وضع العرض والرجوع لإدخال جديد
@@ -1995,9 +2248,9 @@ function editRecord(id, e){
   e.stopPropagation();
   const r = records.find(x => x.id === id);
   if(!r) return;
-  // ✅ تحقق من قاعدة 4 أيام
+  // ✅ تحقق من قاعدة 3 أيام
   if(!canEditRecord(r.date)){
-    toast('🔒 لا يمكن تعديل سجلات أقدم من 4 أيام','err');
+    toast('🔒 لا يمكن تعديل سجلات أقدم من 3 أيام','err');
     return;
   }
   // إلغاء أي قفل عرض متبقٍّ
@@ -2009,9 +2262,9 @@ function editRecord(id, e){
   // ملء النموذج ببيانات السجل
   document.getElementById('inp-date').value = r.date;
   document.getElementById('inp-invno').value = String(r.invNo||0).padStart(6,'0');
-  document.getElementById('inp-dep').value = (r.deposit||0).toFixed(2);
-  document.getElementById('inp-add-desc').value = r.additionDesc||'';
-  document.getElementById('inp-add-amt').value = (r.additionAmt||0)||'';
+  renderDepositRows(r.depositRows || (r.deposit ? [{desc:'إيداع بنكي', amt:parseFloat(r.deposit)||0}] : []));
+  renderAdditionRows(r.additionRows||[{desc:r.additionDesc||'',amt:r.additionAmt||0}]);
+  renderPaymentRows(r.paymentRows||[]);
   for(let i=1;i<=6;i++){
     const ce=document.getElementById(`c${i}-cash`), ne=document.getElementById(`c${i}-net`);
     if(ce)ce.value=''; if(ne)ne.value='';
@@ -2020,17 +2273,8 @@ function editRecord(id, e){
     const ce=document.getElementById(`c${c.id}-cash`), ne=document.getElementById(`c${c.id}-net`);
     if(ce)ce.value=c.cash||''; if(ne)ne.value=c.network||'';
   });
-  for(let i=1;i<=5;i++){
-    document.getElementById(`p${i}-no`).value='';
-    document.getElementById(`p${i}-desc`).value='';
-    document.getElementById(`p${i}-amt`).value='';
-  }
-  (r.payments||[]).forEach((p,i)=>{
-    if(i>=5)return;
-    document.getElementById(`p${i+1}-no`).value=p.no||'';
-    document.getElementById(`p${i+1}-desc`).value=p.desc||'';
-    document.getElementById(`p${i+1}-amt`).value=p.amount||'';
-  });
+  const _ep2=(r.payments||[]).map(p=>({no:p.no||'',desc:p.desc||'',amt:parseFloat(p.amount)||0}));
+  renderPaymentRows(r.paymentRows&&r.paymentRows.length?r.paymentRows:_ep2);
   posImages = r.images ? [...r.images] : [];
   renderImages();
   // ✅ تحويل الأرقام إلى إنجليزية فور التحميل
@@ -2088,9 +2332,10 @@ function saveEditRecord(){
   });
   const payments = [];
   for(let i=1;i<=5;i++){
-    const no=document.getElementById(`p${i}-no`)?.value||'';
-    const desc=document.getElementById(`p${i}-desc`)?.value||'';
-    const amt=parseFloat(document.getElementById(`p${i}-amt`)?.value)||0;
+    const _row=document.getElementById(`pay-row-${i}`);
+    const no=_row?.querySelector('[id$="-no"]')?.value||'';
+    const desc=_row?.querySelector('[id$="-desc"]')?.value||'';
+    const amt=parseFloat(_row?.querySelector('[id$="-amt"]')?.value)||0;
     if(no||desc||amt) payments.push({no,desc,amount:amt});
   }
   const updatedRecord = {
@@ -2099,7 +2344,9 @@ function saveEditRecord(){
     date,
     branchName: settings.branchName,
     openingBalance: vals.prev,
-    additionDesc: document.getElementById('inp-add-desc')?.value||'',
+    additionRows: getAdditionRows(),
+    paymentRows: getPaymentRows(),
+    depositRows: getDepositRows(),
     additionAmt: vals.addAmt,
     cashiers, payments,
     deposit: vals.dep,
