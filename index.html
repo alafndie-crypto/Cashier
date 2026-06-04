@@ -294,13 +294,30 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 /* ===== PRINT ===== */
 #parea{display:none}
 #p-img-section{display:none}
+.p-mini-tbl{width:100%;border-collapse:collapse;font-size:9pt;margin:0}
+.p-mini-tbl td{border:1px solid #e0e0e0;padding:3px 7px}
+.p-mini-tbl tr:nth-child(even){background:#fafafa}
+.p-mini-tbl td:last-child{text-align:left;direction:ltr;font-weight:600;white-space:nowrap;width:90px}
+.p-sum-hdr{border-radius:4px 4px 0 0}
 @media print{
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { margin: 0 !important; }
+  html, body { margin: 0 !important; padding: 0 !important; }
   .card { page-break-inside: avoid !important; break-inside: avoid !important; }
-  #payment-rows .prow { page-break-inside: avoid !important; break-inside: avoid !important; }
-  #addition-rows .arow { page-break-inside: avoid !important; break-inside: avoid !important; }
-  .pg-break { display: none !important; page-break-before: avoid !important; }
+  .pg-break { display: none !important; }
+  /* تصغير الخط لضمان صفحة واحدة */
+  #parea { font-size: 8pt !important; }
+  #p-page1 { page-break-inside: avoid !important; break-inside: avoid !important; }
+  .p-mini-tbl { page-break-inside: avoid !important; break-inside: avoid !important; font-size: 7.5pt !important; }
+  .p-tbl { page-break-inside: avoid !important; break-inside: avoid !important; font-size: 8pt !important; }
+  #p-note-section { page-break-inside: avoid !important; break-inside: avoid !important; font-size: 7.5pt !important; }
+  table { page-break-inside: avoid !important; break-inside: avoid !important; }
+  .p-sum-row { font-size: 8pt !important; padding: 1.5px 4px !important; }
+  .p-sum-row.bold { font-size: 9pt !important; }
+  .p-section-title { font-size: 8pt !important; padding: 2px 5px !important; margin: 2px 0 !important; }
+  .p-sigs { margin-top: 4px !important; }
+  .p-co h2 { font-size: 13pt !important; margin: 2px 0 !important; }
+  .p-co { padding: 4px !important; }
+  .p-meta { padding: 3px 6px !important; font-size: 8pt !important; }
 
   @page{margin:10mm 8mm;size:A4 portrait}
   body{padding:0 !important;margin:0}
@@ -659,6 +676,7 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
 <!-- ===== PRINT AREA ===== -->
 <div id="parea">
   <div id="p-page1">
+    <!-- رأس الصفحة -->
     <div class="p-co">
       <h2>شركة أصالة الهرم التجارية</h2>
       <div class="p-br" id="p-branch"></div>
@@ -669,34 +687,59 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
       <span style="font-weight:700">الحركة اليومية للصندوق</span>
       <span>التاريخ: <strong id="p-date"></strong></span>
     </div>
+
+    <!-- جدول الكاشيرات -->
     <div class="p-section-title">📊 مبيعات الكاشيرات</div>
     <table class="p-tbl">
-      <thead><tr><th style="width:20%">الكاشير</th><th>البيان</th><th style="width:25%">نقدي (ر.س)</th><th style="width:25%">شبكة (ر.س)</th></tr></thead>
+      <thead><tr><th style="width:18%">الكاشير</th><th>البيان</th><th style="width:22%">نقدي (ر.س)</th><th style="width:22%">شبكة (ر.س)</th></tr></thead>
       <tbody id="p-cashier-rows"></tbody>
       <tfoot><tr style="background:#eee;font-weight:900"><td colspan="2">الإجمالي</td><td id="pf-cash"></td><td id="pf-net"></td></tr></tfoot>
     </table>
-    <!-- ✅ ملاحظة تلقائية -->
-    <div id="p-note-section" style="margin:5px 0 4px;padding:4px 6px;border-radius:4px;font-size:8.5pt">
-      <div style="font-weight:900;font-size:9pt;margin-bottom:2px">📝 ملاحظة:</div>
+
+    <!-- ملاحظات الأيام السابقة فقط -->
+    <div id="p-note-section" style="margin:4px 0;padding:4px 6px;border-radius:4px;font-size:8pt">
+      <div style="font-weight:900;font-size:8.5pt;margin-bottom:2px">📝 ملاحظات الأيام السابقة:</div>
       <div id="p-note-text"></div>
     </div>
-    <div class="p-section-title">💹 ملخص الصندوق</div>
-    <div class="p-sum-row"><span>إجمالي مبيعات النقد</span><span id="ps-cash"></span></div>
-    <div class="p-sum-row"><span>إجمالي الشبكة (للمعلومات)</span><span id="ps-net"></span></div>
-    <div class="p-sum-row" style="border-top:1px dashed #aaa;padding-top:4px"><span>إجمالي المبيعات نقد + شبكة (للمعلومات)</span><span id="ps-total-sales"></span></div>
-    <div class="p-sum-row"><span>الرصيد الافتتاحي (+)</span><span id="ps-prev"></span></div>
-    <div class="p-sum-row" id="ps-add-row" style="display:none"><span id="ps-add-label">إضافات (+)</span><span id="ps-add"></span></div>
-    <div class="p-sum-row bold"><span>الإجمالي الكلي في الصندوق</span><span id="ps-grand"></span></div>
-    <div class="p-section-title">💸 المدفوعات</div>
-    <table class="p-tbl">
-      <thead><tr><th style="width:20%">رقم السند</th><th>البيان</th><th style="width:25%">المبلغ (ر.س)</th></tr></thead>
-      <tbody id="p-pay-rows"></tbody>
-    </table>
-    <div class="p-sum-row red"><span>إجمالي المدفوعات (-)</span><span id="ps-pay"></span></div>
-    <div class="p-sum-row red"><span>مبلغ الإيداع البنكي (-)</span><span id="ps-dep"></span></div>
-    <div class="p-sum-row red"><span>إجمالي الخارج</span><span id="ps-out"></span></div>
-    <div class="p-sum-row bold"><span>✅ الرصيد الباقي في الصندوق</span><span id="ps-final"></span></div>
-    <div class="p-sigs">
+
+    <!-- تخطيط عمودين: يمين=ملخص الدخل، يسار=الخرج -->
+    <div style="display:flex;gap:6px;align-items:flex-start;margin-top:4px">
+
+      <!-- العمود الأيمن: ملخص الدخل -->
+      <div style="flex:1;min-width:0">
+        <div class="p-section-title" style="font-size:8pt">💹 ملخص الدخل</div>
+        <div class="p-sum-row"><span>مبيعات نقد</span><span id="ps-cash"></span></div>
+        <div class="p-sum-row"><span>شبكة (للمعلومات)</span><span id="ps-net"></span></div>
+        <div class="p-sum-row" style="border-top:1px dashed #aaa"><span>إجمالي المبيعات</span><span id="ps-total-sales"></span></div>
+        <div class="p-sum-row"><span>رصيد افتتاحي (+)</span><span id="ps-prev"></span></div>
+        <div id="ps-add-section" style="display:none">
+          <div style="background:#e8f5e9;padding:2px 5px;font-size:7.5pt;font-weight:700;color:#1b5e20;border-radius:3px;margin-top:2px">➕ إضافات للصندوق</div>
+          <table class="p-mini-tbl" id="ps-add-tbl"><tbody id="ps-add-rows"></tbody></table>
+          <div class="p-sum-row" style="background:#f1f8e9"><span style="color:#2e7d32;font-weight:700">إجمالي الإضافات (+)</span><span id="ps-add-total" style="color:#2e7d32;font-weight:700"></span></div>
+        </div>
+        <div class="p-sum-row bold"><span>الإجمالي الكلي</span><span id="ps-grand"></span></div>
+      </div>
+
+      <!-- العمود الأيسر: الخرج -->
+      <div style="flex:1;min-width:0">
+        <div class="p-section-title" style="font-size:8pt">💸 الخرج من الصندوق</div>
+        <table class="p-tbl" style="font-size:7.5pt">
+          <thead><tr><th style="width:18%">السند</th><th>البيان</th><th style="width:24%">المبلغ</th></tr></thead>
+          <tbody id="p-pay-rows"></tbody>
+        </table>
+        <div class="p-sum-row red"><span>إجمالي المدفوعات (-)</span><span id="ps-pay"></span></div>
+        <div id="ps-dep-section" style="display:none">
+          <div style="background:#fce4ec;padding:2px 5px;font-size:7.5pt;font-weight:700;color:#880e4f;border-radius:3px;margin-top:2px">🏦 الإيداع البنكي</div>
+          <table class="p-mini-tbl" id="ps-dep-tbl"><tbody id="ps-dep-rows"></tbody></table>
+          <div class="p-sum-row red"><span>إجمالي الإيداع (-)</span><span id="ps-dep-total"></span></div>
+        </div>
+        <div class="p-sum-row red"><span>إجمالي الخارج</span><span id="ps-out"></span></div>
+        <div class="p-sum-row bold" style="background:#fff8e1"><span>✅ الرصيد الباقي</span><span id="ps-final"></span></div>
+      </div>
+    </div>
+
+    <!-- التوقيعات -->
+    <div class="p-sigs" style="margin-top:6px">
       <div><div class="sig-line"></div>أمين الصندوق</div>
       <div><div class="sig-line"></div>المحاسب</div>
       <div><div class="sig-line"></div>المدير المالي</div>
@@ -1662,10 +1705,10 @@ function fillPrintArea(){
   const branchText='فرع: '+settings.branchName;
   document.getElementById('p-branch').textContent=branchText;
   document.getElementById('p-invno').textContent=invNo;
-  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const dayName = date ? dayNames[new Date(date + 'T00:00:00').getDay()] : '';
+  const dayNamesAr=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const dayName = date ? dayNamesAr[new Date(date + 'T00:00:00').getDay()] : '';
   const df = formatDateAr(date);
-  document.getElementById('p-date').textContent = (dayName ? dayName + ', ' : '') + df;
+  document.getElementById('p-date').textContent = (dayName ? dayName + '، ' : '') + df;
   let cashRows='';
   [...(settings.activeCashiers||[])].sort((a,b)=>a-b).forEach(num=>{
     const cash=parseFloat(document.getElementById(`c${num}-cash`)?.value)||0;
@@ -1679,33 +1722,32 @@ function fillPrintArea(){
   document.getElementById('ps-net').textContent=n(vals.totalNet);
   document.getElementById('ps-total-sales').textContent=n(vals.totalCash+vals.totalNet);
   document.getElementById('ps-prev').textContent=n(vals.prev);
-  if(vals.addAmt>0){
-    const addDescs=getAdditionRows().map(r=>r.desc||'إضافة').join('، ')||'إضافات';
-    const addDesc=addDescs;
-    document.getElementById('ps-add-label').textContent=addDesc+' (+)';
-    document.getElementById('ps-add').textContent=n(vals.addAmt);
-    document.getElementById('ps-add-row').style.display='flex';
+  // ── جدول الإضافات ──
+  const addRows = getAdditionRows().filter(r => parseFloat(r.amt) !== 0);
+  if(addRows.length > 0){
+    const addTbody = document.getElementById('ps-add-rows');
+    addTbody.innerHTML = addRows.map(r =>
+      `<tr><td>${r.desc||'إضافة'}</td><td>${n(parseFloat(r.amt))}</td></tr>`
+    ).join('');
+    document.getElementById('ps-add-total').textContent = n(vals.addAmt);
+    document.getElementById('ps-add-section').style.display = 'block';
   } else {
-    document.getElementById('ps-add-row').style.display='none';
+    document.getElementById('ps-add-section').style.display = 'none';
   }
   document.getElementById('ps-grand').textContent=n(vals.grandTotal);
   document.getElementById('ps-pay').textContent=n(vals.totalPay);
-  // طباعة صفوف الإيداع
-(()=>{
-  const depEl = document.getElementById('ps-dep');
-  const depRows = getDepositRows();
-  if(depRows.length <= 1){
-    if(depEl) depEl.textContent = n(vals.dep);
+  // ── جدول الإيداع ──
+  const depRows2 = getDepositRows().filter(r => parseFloat(r.amt) > 0);
+  if(depRows2.length > 0){
+    const depTbody = document.getElementById('ps-dep-rows');
+    depTbody.innerHTML = depRows2.map(r =>
+      `<tr><td>${r.desc||'إيداع بنكي'}</td><td>${n(parseFloat(r.amt))}</td></tr>`
+    ).join('');
+    document.getElementById('ps-dep-total').textContent = n(vals.dep);
+    document.getElementById('ps-dep-section').style.display = 'block';
   } else {
-    const parent = depEl?.closest('.trow');
-    if(parent){
-      let extra = '';
-      depRows.forEach((r,i)=>{ extra += `<div class="trow" style="font-size:12px;padding:3px 10px"><span class="tlbl" style="color:#64748b">${r.desc||'إيداع '+(i+1)}</span><span class="tval">${n(r.amt)}</span></div>`; });
-      parent.insertAdjacentHTML('afterend', extra);
-    }
-    if(depEl) depEl.textContent = n(vals.dep);
+    document.getElementById('ps-dep-section').style.display = 'none';
   }
-})();
   document.getElementById('ps-out').textContent=n(vals.totalOut);
   document.getElementById('ps-final').textContent=n(vals.finalBal);
 
@@ -1763,10 +1805,15 @@ function fillPrintArea(){
   const allNoteLines = [];
 
   // ① السجلات المحفوظة ضمن آخر 3 أيام (غير السجل الحالي)
+  // السجلات: آخر 3 أيام قبل تاريخ الفاتورة الحالية (ليس من اليوم الفعلي)
+  const currentDateD = new Date(currentDate+'T00:00:00');
+  const cutoff3 = new Date(currentDateD); cutoff3.setDate(cutoff3.getDate()-3);
+
   const recentRecs = (records||[])
     .filter(r => {
       const d = new Date(r.date+'T00:00:00');
-      return d >= cutoff && d <= todayD && r.date !== currentDate;
+      // فقط السجلات التي تاريخها قبل تاريخ الفاتورة الحالية وضمن 3 أيام
+      return d >= cutoff3 && d < currentDateD;
     })
     .sort((a,b)=>a.date.localeCompare(b.date));
 
@@ -1777,36 +1824,7 @@ function fillPrintArea(){
     }
   });
 
-  // ② الفاتورة الحالية المفتوحة
-  const curDate_d = new Date(currentDate+'T00:00:00');
-  if(curDate_d >= cutoff){
-    // مدفوعات الفاتورة الحالية
-    const curPays = [];
-    for(let i=1;i<=5;i++){
-      const _pr = document.getElementById(`pr${i}-amt`);
-      const amt = parseFloat(_pr?.value)||0;
-      const _pd = document.getElementById(`pr${i}-desc`);
-      const desc = (_pd?.value||'').trim();
-      if(amt>0) curPays.push({amount:amt,desc});
-    }
-    const curDep  = (()=>{ let s=0; document.querySelectorAll('#deposit-rows .arow').forEach(r=>{ s+=parseFloat(r.querySelector('[id^="dr"][id$="-amt"]')?.value)||0; }); return s; })();
-    const invLabel= currentInvNo ? `سند <strong>${currentInvNo}</strong>` : '';
-
-    if(currentAddAmt !== 0){
-      const sign = currentAddAmt>0?'+':'';
-      const op   = currentAddAmt>0?'➕ إضافة مبلغ للصندوق':'➖ طرح مبلغ من الصندوق';
-      const desc = currentAddDsc?` (${currentAddDsc})`:'';
-      allNoteLines.push(`<div>📌 <strong>${op}${desc}:</strong> <span dir="ltr">${sign}${n(currentAddAmt)} ر.س</span> — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
-    }
-    if(curDep>0){
-      allNoteLines.push(`<div>🏦 <strong>إيداع بنكي:</strong> <span dir="ltr">${n(curDep)} ر.س</span> — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
-    }
-    if(curPays.length>0){
-      const total=curPays.reduce((s,p)=>s+p.amount,0);
-      const details=curPays.map(p=>`${p.desc||'بدون بيان'} (${n(p.amount)} ر.س)`).join('، ');
-      allNoteLines.push(`<div>💸 <strong>مدفوعات (${curPays.length}):</strong> <span dir="ltr">${n(total)} ر.س</span> — ${details} — بتاريخ <strong>${formatDateAr(currentDate)}</strong> — ${invLabel}</div>`);
-    }
-  }
+  // الفاتورة الحالية لا تظهر في الملاحظات - بياناتها في الجداول أعلاه
 
   if(allNoteLines.length > 0){
     noteSection.className = 'p-note-warn';
@@ -1834,12 +1852,7 @@ function fillPrintArea(){
       }
     });
 
-    // من الفاتورة الحالية
-    if(new Date(currentDate+'T00:00:00') >= cutoff){
-      netTotal += currentAddAmt;
-      netTotal -= (()=>{ let s=0; document.querySelectorAll('#deposit-rows .arow').forEach(r=>{ s+=parseFloat(r.querySelector('[id^="dr"][id$="-amt"]')?.value)||0; }); return s; })();
-      getPaymentRows().forEach(p => netTotal -= parseFloat(p.amt)||0);
-    }
+
 
     const netSign   = netTotal >= 0 ? '+' : '';
     const netColor  = netTotal >= 0 ? '#276749' : '#c53030';
@@ -1861,16 +1874,17 @@ function fillPrintArea(){
     noteSection.className = 'p-note-none';
     noteText.textContent = 'لا توجد ملاحظات على الـ 3 أيام الماضية.';
   }
-  let payRows=''; let hasP=false;
-  for(let i=1;i<=5;i++){
-    const _row=document.getElementById(`pay-row-${i}`);
-    const no=_row?.querySelector('[id$="-no"]')?.value||'';
-    const desc=_row?.querySelector('[id$="-desc"]')?.value||'';
-    const amt=parseFloat(_row?.querySelector('[id$="-amt"]')?.value)||0;
-    if(no||desc||amt){hasP=true;payRows+=`<tr><td>${no||'-'}</td><td>${desc||'-'}</td><td>${n(amt)}</td></tr>`;}
+  // ── جدول المدفوعات ──
+  const allPayRows = getPaymentRows().filter(r => parseFloat(r.amt) > 0 || r.desc || r.no);
+  let payRows = '';
+  if(allPayRows.length > 0){
+    payRows = allPayRows.map(r =>
+      `<tr><td>${r.no||'-'}</td><td>${r.desc||'-'}</td><td>${n(parseFloat(r.amt)||0)}</td></tr>`
+    ).join('');
+  } else {
+    payRows = '<tr><td colspan="3" style="text-align:center;color:#aaa">لا توجد مدفوعات</td></tr>';
   }
-  if(!hasP) payRows='<tr><td colspan="3" style="text-align:center;color:#aaa">لا توجد مدفوعات</td></tr>';
-  document.getElementById('p-pay-rows').innerHTML=payRows;
+  document.getElementById('p-pay-rows').innerHTML = payRows;
 
   // Build image pages: 4 per page (2x2 grid), fixed A4 div, no margins
   const imgSection=document.getElementById('p-img-section');
