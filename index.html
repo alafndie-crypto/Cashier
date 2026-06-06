@@ -4,8 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cashier</title><title style="display:none">أصالة الهرم - الحركة اليومية</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="window._jspdfLoadFailed=true"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="window._html2canvasLoadFailed=true"></script>
+<script>
+// ── مُحمِّل المكتبات الذكي: يتحقق ويُعيد التحميل عند الحاجة ──────────────
+function _loadScript(url){
+  return new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src=url;
+    s.onload=resolve;
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+// روابط بديلة لكل مكتبة (CDN متعددة)
+var _JSPDF_URLS=[
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+];
+var _H2C_URLS=[
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js',
+  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+];
+
+async function ensureLibsLoaded(){
+  // فحص jsPDF
+  if(!window.jspdf || !window.jspdf.jsPDF){
+    var loaded=false;
+    for(var i=0;i<_JSPDF_URLS.length;i++){
+      try{ await _loadScript(_JSPDF_URLS[i]); if(window.jspdf&&window.jspdf.jsPDF){loaded=true;break;} }catch(e){}
+    }
+    if(!loaded) throw new Error('فشل تحميل مكتبة PDF. تحقق من الاتصال بالإنترنت وأعد المحاولة.');
+  }
+  // فحص html2canvas
+  if(!window.html2canvas){
+    var loaded2=false;
+    for(var j=0;j<_H2C_URLS.length;j++){
+      try{ await _loadScript(_H2C_URLS[j]); if(window.html2canvas){loaded2=true;break;} }catch(e){}
+    }
+    if(!loaded2) throw new Error('فشل تحميل مكتبة الرسم. تحقق من الاتصال بالإنترنت وأعد المحاولة.');
+  }
+}
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1949,6 +1992,10 @@ async function shareWAasPDF(){
   parea.style.cssText = 'display:block !important;position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1;overflow:visible';
 
   try{
+    // ✅ تأكد من تحميل المكتبات أولاً قبل أي شيء
+    setProgress(5,'جاري تحميل المكتبات...');
+    await ensureLibsLoaded();
+
     fillPrintArea();
     await sleep(400);
     setProgress(15,'Rendering page...');
@@ -2071,52 +2118,50 @@ async function shareWAasPDF(){
 
     setProgress(98,'Sending to WhatsApp...');
 
-    // ✅ الأولوية 1: Android Java Bridge (APK) — الأكثر موثوقية
-    if(window.AndroidShare){
-      const reader = new FileReader();
-      reader.onloadend = function(){
-        const base64 = reader.result.split(',')[1];
-        window.AndroidShare.sharePdfToWhatsApp(base64, fileName);
-        toast('📲 جاري فتح واتساب...');
-      };
-      reader.readAsDataURL(pdfBlob);
+    // دالة تحميل مباشر مشتركة
+    function _downloadPDF(blob, name){
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+    }
 
-    // ✅ الأولوية 2: Web Share API (Chrome/Safari على موبايل)
-    } else if(typeof navigator.share === 'function'){
+    // ══════════════════════════════════════════════════════════════
+    // الأولوية 1: Android Java Bridge (داخل APK) — مضمون 100%
+    // ══════════════════════════════════════════════════════════════
+    if(window.AndroidShare){
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = () => reject(new Error('فشل قراءة الملف'));
+        reader.readAsDataURL(pdfBlob);
+      });
+      window.AndroidShare.sharePdfToWhatsApp(base64, fileName);
+      toast('📲 جاري فتح واتساب...');
+
+    // ══════════════════════════════════════════════════════════════
+    // الأولوية 2: Web Share API مع دعم الملفات (Chrome Android 8+)
+    // ══════════════════════════════════════════════════════════════
+    } else if(typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({files:[pdfFile]})){
       try{
-        // بعض المتصفحات لا تدعم files — نجرّب مع files أولاً
-        const shareData = {title: fileName.replace('.pdf',''), files:[pdfFile]};
-        if(navigator.canShare && !navigator.canShare(shareData)){
-          // لا تدعم الملفات — جرّب بدون files
-          await navigator.share({title:fileName.replace('.pdf',''), text:'تقرير الحركة اليومية'});
-          toast('⚠️ المتصفح لا يدعم مشاركة الملفات — جاري التحميل...');
-          const url=URL.createObjectURL(pdfBlob);
-          const a=document.createElement('a'); a.href=url; a.download=fileName;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          setTimeout(()=>URL.revokeObjectURL(url),3000);
-        } else {
-          await navigator.share(shareData);
-          toast('✅ تمت المشاركة بنجاح');
-        }
+        await navigator.share({
+          title: 'تقرير الحركة اليومية',
+          text: fileName.replace('.pdf',''),
+          files: [pdfFile]
+        });
+        toast('✅ تمت المشاركة بنجاح');
       } catch(shareErr){
-        if(shareErr && shareErr.name === 'AbortError'){
-          toast('✅ تم إغلاق نافذة المشاركة');
-        } else {
-          // خطأ — تحميل مباشر
-          const url=URL.createObjectURL(pdfBlob);
-          const a=document.createElement('a'); a.href=url; a.download=fileName;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          setTimeout(()=>URL.revokeObjectURL(url),3000);
+        if(shareErr && shareErr.name !== 'AbortError'){
+          _downloadPDF(pdfBlob, fileName);
           toast('📥 تم تحميل PDF — افتح واتساب وأرفق الملف');
         }
       }
 
-    // ✅ الأولوية 3: تحميل مباشر (متصفح سطح مكتب)
+    // ══════════════════════════════════════════════════════════════
+    // الأولوية 3: تحميل مباشر (احتياطي نهائي)
+    // ══════════════════════════════════════════════════════════════
     } else {
-      const url=URL.createObjectURL(pdfBlob);
-      const a=document.createElement('a'); a.href=url; a.download=fileName;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      _downloadPDF(pdfBlob, fileName);
       toast('📥 تم تحميل PDF');
     }
   }catch(err){
