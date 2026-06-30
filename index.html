@@ -1929,25 +1929,23 @@ function fillPrintArea(){
   }
   document.getElementById('p-pay-rows').innerHTML = payRows;
 
-  // Build image pages: 4 per page (2x2 grid), fixed A4 div, no margins
+  // Build image pages: 1 image per page, fixed A4 div, no margins
   const imgSection=document.getElementById('p-img-section');
   const p1=document.getElementById('p-page1');
   if(posImages.length>0){
     // Add page break after report only when images exist
     p1.style.pageBreakAfter='always';
-    const chunks=[];
-    for(let i=0;i<posImages.length;i+=4) chunks.push(posImages.slice(i,i+4));
     // Use A4 dimensions with small safety margin to never overflow
-    const pageS='width:100%;height:277mm;display:flex;flex-wrap:wrap;margin:0;padding:0;overflow:hidden;box-sizing:border-box';
-    const cellS='width:50%;height:138.5mm;overflow:hidden;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:1mm';
+    const pageS='width:100%;height:277mm;display:flex;margin:0;padding:0;overflow:hidden;box-sizing:border-box';
+    const cellS='width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:2mm';
     const iS='max-width:100%;max-height:100%;object-fit:contain';
-    imgSection.innerHTML=chunks.map((chunk,ci)=>{
-      const cell=(idx)=>`<div style="${cellS}">${chunk[idx]?`<img src="${chunk[idx]}" style="${iS}">`:'<div style="width:100%;height:100%"></div>'}</div>`;
+    imgSection.innerHTML=posImages.map((src,ci)=>{
+      const cell=`<div style="${cellS}">${src?`<img src="${src}" style="${iS}">`:'<div style="width:100%;height:100%"></div>'}</div>`;
       const brk = ci===0 ? '' : '<div class="pg-break"></div>';
       // آخر صفحة صور: page-break-after:avoid لمنع صفحة فارغة بعدها
-      const isLast = ci === chunks.length - 1;
+      const isLast = ci === posImages.length - 1;
       const extraStyle = isLast ? 'page-break-after:avoid;' : '';
-      return `${brk}<div class="p-img-page" style="${pageS}${extraStyle}">${cell(0)}${cell(1)}${cell(2)}${cell(3)}</div>`;
+      return `${brk}<div class="p-img-page" style="${pageS}${extraStyle}">${cell}</div>`;
     }).join('');
   } else {
     // No images: no page break, no blank second page
@@ -1986,6 +1984,13 @@ async function shareWAasPDF(){
   btn.innerHTML='⏳ جاري التجهيز...';
   btn.disabled=true;
   showProgress('📄 Creating PDF...',0,'Preparing data...');
+
+  // ✅ حفظ البيانات تلقائياً قبل المشاركة عبر واتساب
+  const _waDate = document.getElementById('inp-date').value;
+  if(_waDate){
+    if(editingRecordId) saveEditRecord();
+    else autoSave();
+  }
 
   const parea = document.getElementById('parea');
   const pareaOrigStyle = parea.getAttribute('style') || '';
@@ -2060,51 +2065,35 @@ async function shareWAasPDF(){
     if(h1>maxH){ h1=maxH; w1=h1*r1; }
     pdf.addImage(img1,'JPEG',6,6,w1,h1);
 
-    // Image pages
+    // Image pages — صورة واحدة كاملة في كل صفحة
     if(posImages.length>0){
       setProgress(60,'إضافة صفحات الصور...');
-      const chunks=[];
-      for(let i=0;i<posImages.length;i+=4) chunks.push(posImages.slice(i,i+4));
-      for(let ci=0;ci<chunks.length;ci++){
+      // صفحة كاملة A4 بهامش بسيط 4مم من كل جهة
+      const CELL = {x:4, y:4, w:202, h:289};
+      for(let ci=0;ci<posImages.length;ci++){
         pdf.addPage();
-        setProgress(60+Math.round(30*(ci+1)/chunks.length),`صفحة الصور ${ci+1}...`);
-        const chunk=chunks[ci];
-        // 4 images hardcoded exact positions — A4=210x297mm
-        // Each cell ≈ 103x146mm, 2mm gap, 2mm outer margin
-        const CELLS=[
-          {x:2,  y:2,   w:103, h:146},
-          {x:107,y:2,   w:101, h:146},
-          {x:2,  y:150, w:103, h:145},
-          {x:107,y:150, w:101, h:145}
-        ];
-        for(let k=0;k<chunk.length&&k<4;k++){
-          const cell=CELLS[k];
-          // ضغط الصورة مع الحفاظ على الألوان
-          const gCanvas=document.createElement('canvas');
-          const tempImg=new Image();
-          await new Promise(res=>{tempImg.onload=res;tempImg.src=chunk[k];});
-          const maxDim=800;
-          let sw=tempImg.width, sh=tempImg.height;
-          if(sw>sh){sh=Math.round(sh*maxDim/sw);sw=maxDim;}
-          else{sw=Math.round(sw*maxDim/sh);sh=maxDim;}
-          gCanvas.width=sw; gCanvas.height=sh;
-          const gCtx=gCanvas.getContext('2d');
-          // صور ملوّنة بدون تحويل لأبيض وأسود
-          gCtx.drawImage(tempImg,0,0,sw,sh);
-          const gData=gCanvas.toDataURL('image/jpeg',0.82);
-          // Border
-          pdf.setDrawColor(180);pdf.setLineWidth(0.2);
-          pdf.rect(cell.x, cell.y, cell.w, cell.h);
-          // Fit image inside cell preserving aspect ratio
-          const ar=sw/sh;
-          let iw=cell.w-1, ih=cell.h-1;
-          if(iw/ih>ar){iw=ih*ar;}else{ih=iw/ar;}
-          if(iw>cell.w-1){iw=cell.w-1; ih=iw/ar;}
-          if(ih>cell.h-1){ih=cell.h-1; iw=ih*ar;}
-          const ix=cell.x+(cell.w-iw)/2;
-          const iy=cell.y+(cell.h-ih)/2;
-          pdf.addImage(gData,'JPEG',ix,iy,iw,ih);
-        }
+        setProgress(60+Math.round(30*(ci+1)/posImages.length),`صفحة الصور ${ci+1}...`);
+        const src = posImages[ci];
+        // ضغط الصورة مع الحفاظ على الألوان
+        const gCanvas=document.createElement('canvas');
+        const tempImg=new Image();
+        await new Promise(res=>{tempImg.onload=res;tempImg.src=src;});
+        const maxDim=1600;
+        let sw=tempImg.width, sh=tempImg.height;
+        if(sw>sh){sh=Math.round(sh*maxDim/sw);sw=maxDim;}
+        else{sw=Math.round(sw*maxDim/sh);sh=maxDim;}
+        gCanvas.width=sw; gCanvas.height=sh;
+        const gCtx=gCanvas.getContext('2d');
+        // صور ملوّنة بدون تحويل لأبيض وأسود
+        gCtx.drawImage(tempImg,0,0,sw,sh);
+        const gData=gCanvas.toDataURL('image/jpeg',0.85);
+        // Fit image inside full page preserving aspect ratio
+        const ar=sw/sh;
+        let iw=CELL.w, ih=CELL.h;
+        if(iw/ih>ar){iw=ih*ar;}else{ih=iw/ar;}
+        const ix=CELL.x+(CELL.w-iw)/2;
+        const iy=CELL.y+(CELL.h-ih)/2;
+        pdf.addImage(gData,'JPEG',ix,iy,iw,ih);
       }
     }
 
