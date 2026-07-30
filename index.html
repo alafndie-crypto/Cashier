@@ -1753,7 +1753,14 @@ function fillPrintArea(){
   const df = formatDateAr(date);
   document.getElementById('p-date').textContent = (dayName ? dayName + '، ' : '') + df;
   let cashRows='';
-  [...(settings.activeCashiers||[])].sort((a,b)=>a-b).forEach(num=>{
+  // ✅ نعتمد على الصفوف الفعلية المعروضة (كاشيرات هذا السجل/اليوم بالذات)
+  // وليس settings.activeCashiers، حتى لا يختفي كاشير قديم تم إخفاؤه لاحقاً من الإعدادات
+  const _printCashierIds=[];
+  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
+    const cashEl = row.querySelector('[id$="-cash"]');
+    if(cashEl){ const m=cashEl.id.match(/^c(\d+)-cash$/); if(m) _printCashierIds.push(parseInt(m[1])); }
+  });
+  [...new Set(_printCashierIds)].sort((a,b)=>a-b).forEach(num=>{
     const cash=parseFloat(document.getElementById(`c${num}-cash`)?.value)||0;
     const net=parseFloat(document.getElementById(`c${num}-net`)?.value)||0;
     cashRows+=`<tr><td>كاشير ${num}</td><td>مبيعات الكاشير</td><td>${n(cash)}</td><td>${n(net)}</td></tr>`;
