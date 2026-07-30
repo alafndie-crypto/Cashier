@@ -2313,14 +2313,25 @@ function editRecord(id, e){
   renderDepositRows(r.depositRows || (r.deposit ? [{desc:'إيداع بنكي', amt:parseFloat(r.deposit)||0}] : []));
   renderAdditionRows(r.additionRows||[{desc:r.additionDesc||'',amt:r.additionAmt||0}]);
   renderPaymentRows(r.paymentRows||[]);
-  for(let i=1;i<=6;i++){
-    const ce=document.getElementById(`c${i}-cash`), ne=document.getElementById(`c${i}-net`);
-    if(ce)ce.value=''; if(ne)ne.value='';
+  // ── إعادة بناء صفوف الكاشيرات بناءً على السجل المُحمَّل (وليس آخر عرض) ──
+  // هذا يمنع فقدان بيانات أي كاشير موجود بالسجل وغير معروض حالياً بالشاشة
+  if(r.cashiers && r.cashiers.length > 0){
+    const tbody = document.getElementById('cashier-rows');
+    tbody.innerHTML = '';
+    [...r.cashiers.map(c=>c.id)].sort((a,b)=>a-b).forEach(num=>{
+      tbody.innerHTML += `<tr>
+        <td class="cname">كاشير<br>${num}</td>
+        <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+        <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+      </tr>`;
+    });
+    r.cashiers.forEach(c=>{
+      const ce=document.getElementById(`c${c.id}-cash`), ne=document.getElementById(`c${c.id}-net`);
+      if(ce)ce.value=c.cash||''; if(ne)ne.value=c.network||'';
+    });
+  } else {
+    renderCashierRows();
   }
-  (r.cashiers||[]).forEach(c=>{
-    const ce=document.getElementById(`c${c.id}-cash`), ne=document.getElementById(`c${c.id}-net`);
-    if(ce)ce.value=c.cash||''; if(ne)ne.value=c.network||'';
-  });
   const _ep2=(r.payments||[]).map(p=>({no:p.no||'',desc:p.desc||'',amt:parseFloat(p.amount)||0}));
   renderPaymentRows(r.paymentRows&&r.paymentRows.length?r.paymentRows:_ep2);
   posImages = r.images ? [...r.images] : [];
