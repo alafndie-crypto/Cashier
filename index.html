@@ -1163,6 +1163,7 @@ function rechainRecords(fromDate){
 }
 
 function clearFormFields(){
+  _cashierBuf = {};
   (settings.activeCashiers||[]).forEach(num=>{
     const c=document.getElementById(`c${num}-cash`);
     const ne=document.getElementById(`c${num}-net`);
@@ -1390,6 +1391,9 @@ function saveToStorage(){
 // CASHIER PICKER - دوائر اختيار الكاشيرات
 // ============================================================
 let _selectedCashiers = new Set();
+// ✅ مخزن مستقل يحتفظ بقيمة كل كاشير (نقدي/شبكة) بمجرد كتابتها،
+// حتى لو تم إخفاء الكاشير لاحقاً من دوائر الاختيار — يُصفّى فقط عند فتح تاريخ/سجل جديد
+let _cashierBuf = {};
 
 function initCashierPicker(){
   const container = document.getElementById('picker-circles');
@@ -1424,14 +1428,13 @@ function toggleCashierPicker(num){
 }
 
 function rebuildCashierRows(){
-  // حفظ القيم الحالية
-  const savedVals = {};
+  // ✅ نحفظ القيم الحالية بالمخزن المستقل قبل الإعادة (تحديث لحظي)
   document.querySelectorAll('#cashier-rows tr').forEach(row => {
     const cashEl = row.querySelector('[id$="-cash"]');
     const netEl  = row.querySelector('[id$="-net"]');
-    if(cashEl){ const m = cashEl.id.match(/c(\d+)-cash/); if(m) savedVals[m[1]] = {cash: cashEl.value, net: netEl?.value||''}; }
+    if(cashEl){ const m=cashEl.id.match(/c(\d+)-cash/); if(m) _cashierBuf[m[1]] = {cash: cashEl.value, net: netEl?.value||''}; }
   });
-  // إعادة البناء
+  // إعادة البناء — نقرأ من المخزن المستقل (يشمل الكاشيرات المخفية سابقاً) لا من الصفوف الظاهرة فقط
   const tbody = document.getElementById('cashier-rows');
   tbody.innerHTML = '';
   const sorted = [..._selectedCashiers].sort((a,b)=>a-b);
@@ -1440,7 +1443,7 @@ function rebuildCashierRows(){
     calc(); return;
   }
   sorted.forEach(num => {
-    const sv = savedVals[num] || {cash:'', net:''};
+    const sv = _cashierBuf[num] || {cash:'', net:''};
     tbody.innerHTML += `<tr>
       <td class="cname">كاشير<br>${num}</td>
       <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()" value="${sv.cash}"></td>
@@ -1582,6 +1585,13 @@ function calc(){
     const netEl   = row.querySelector('[id$="-net"]');
     if(cashEl) totalCash += parseFloat(cashEl.value)||0;
     if(netEl)  totalNet  += parseFloat(netEl.value)||0;
+    // ✅ نحفظ كل قيمة يكتبها المستخدم بمخزن مستقل، حتى لو الكاشير اختفى لاحقاً
+    if(cashEl){
+      const m = cashEl.id.match(/^c(\d+)-cash$/);
+      if(m){
+        _cashierBuf[m[1]] = { cash: cashEl.value, net: netEl?.value||'' };
+      }
+    }
   });
   // إضافات ديناميكية
   let addAmt = 0;
@@ -2212,6 +2222,10 @@ function renderHistory(){
 
 // ── مساعدة: تعبئة النموذج من سجل دون تفعيل أي وضع ─────────────
 function _fillFormFromRec(r){
+  // ✅ تصفير المخزن ومزامنة دوائر الاختيار مع كاشيرات هذا السجل بالذات
+  _cashierBuf = {};
+  _selectedCashiers = new Set((r.cashiers||[]).map(c=>c.id));
+  initCashierPicker();
   document.getElementById('inp-date').value=r.date;
   document.getElementById('inp-invno').value=String(r.invNo||0).padStart(6,'0');
   renderDepositRows(r.depositRows || (r.deposit ? [{desc:'إيداع بنكي', amt:parseFloat(r.deposit)||0}] : []));
@@ -2220,6 +2234,18 @@ function _fillFormFromRec(r){
   for(let i=1;i<=6;i++){
     const ce=document.getElementById(`c${i}-cash`),ne=document.getElementById(`c${i}-net`);
     if(ce)ce.value='';if(ne)ne.value='';
+  }
+  // ✅ إعادة بناء صفوف الكاشيرات حسب كاشيرات هذا السجل بالذات (وليس الصفوف المعروضة سابقاً)
+  if(r.cashiers && r.cashiers.length > 0){
+    const tbody = document.getElementById('cashier-rows');
+    tbody.innerHTML = '';
+    [...r.cashiers.map(c=>c.id)].sort((a,b)=>a-b).forEach(num=>{
+      tbody.innerHTML += `<tr>
+        <td class="cname">كاشير<br>${num}</td>
+        <td><input class="cinp" type="number" id="c${num}-cash" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+        <td><input class="cinp" type="number" id="c${num}-net" placeholder="0.00" min="0" step="0.01" oninput="calc()"></td>
+      </tr>`;
+    });
   }
   (r.cashiers||[]).forEach(c=>{
     const ce=document.getElementById(`c${c.id}-cash`),ne=document.getElementById(`c${c.id}-net`);
@@ -2314,6 +2340,10 @@ function editRecord(id, e){
   _viewingRecordId=null;
   editingRecordId = id;
   showPage('entry', 0);
+  // ✅ تصفير المخزن ومزامنة دوائر الاختيار مع كاشيرات هذا السجل بالذات
+  _cashierBuf = {};
+  _selectedCashiers = new Set((r.cashiers||[]).map(c=>c.id));
+  initCashierPicker();
   // ملء النموذج ببيانات السجل
   document.getElementById('inp-date').value = r.date;
   document.getElementById('inp-invno').value = String(r.invNo||0).padStart(6,'0');
