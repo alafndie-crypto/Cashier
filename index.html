@@ -1231,20 +1231,15 @@ function autoSave(){
   const vals = calc();
   const invNo = parseInt(document.getElementById('inp-invno').value)||settings.invoiceNo;
   const cashiers=[];
-  // نحفظ الكاشيرات الظاهرة فعلاً في الجدول
-  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
-    const cashEl = row.querySelector('[id$="-cash"]');
-    const netEl  = row.querySelector('[id$="-net"]');
-    if(cashEl){
-      const idMatch = cashEl.id.match(/^c(\d+)-cash$/);
-      if(idMatch){
-        cashiers.push({
-          id: parseInt(idMatch[1]),
-          cash: parseFloat(cashEl.value)||0,
-          network: parseFloat(netEl?.value)||0
-        });
-      }
-    }
+  // ✅ نحفظ كل الكاشيرات (الظاهرة + المخفية اللي لها قيمة) — تطابقاً مع الإجمالي المحسوب
+  const _effCashiers = getEffectiveCashierValues();
+  Object.keys(_effCashiers).map(Number).sort((a,b)=>a-b).forEach(id=>{
+    const v = _effCashiers[id];
+    cashiers.push({
+      id,
+      cash: parseFloat(v.cash)||0,
+      network: parseFloat(v.net)||0
+    });
   });
   const payments = getPaymentRows().map(r=>({no:r.no||'',desc:r.desc||'',amount:parseFloat(r.amt)||0}));
   const record={
@@ -1394,6 +1389,26 @@ let _selectedCashiers = new Set();
 // ✅ مخزن مستقل يحتفظ بقيمة كل كاشير (نقدي/شبكة) بمجرد كتابتها،
 // حتى لو تم إخفاء الكاشير لاحقاً من دوائر الاختيار — يُصفّى فقط عند فتح تاريخ/سجل جديد
 let _cashierBuf = {};
+
+// ✅ دالة موحّدة: ترجع قيم كل الكاشيرات (الظاهرة حالياً + المخفية اللي لها قيمة بالمخزن)
+// تُستخدم بالحساب والحفظ والطباعة معاً حتى تبقى الأرقام متطابقة دائماً
+function getEffectiveCashierValues(){
+  const result = {};
+  // 1) نبدأ بقيم المخزن (يشمل الكاشيرات المخفية)
+  Object.keys(_cashierBuf).forEach(id=>{
+    result[id] = { cash: _cashierBuf[id].cash, net: _cashierBuf[id].net };
+  });
+  // 2) نُحدّث بالقيم الحيّة من الصفوف الظاهرة حالياً (الأحدث دائماً)
+  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
+    const cashEl = row.querySelector('[id$="-cash"]');
+    const netEl  = row.querySelector('[id$="-net"]');
+    if(cashEl){
+      const m = cashEl.id.match(/^c(\d+)-cash$/);
+      if(m) result[m[1]] = { cash: cashEl.value, net: netEl?.value||'' };
+    }
+  });
+  return result;
+}
 
 function initCashierPicker(){
   const container = document.getElementById('picker-circles');
@@ -1579,19 +1594,23 @@ function renderAdditionRows(rows){
 function calc(){
   const prev = sessionOpeningBalance || 0;
   let totalCash=0, totalNet=0;
-  // نحسب من الصفوف الظاهرة فعلاً في الجدول (يعمل مع سجلات قديمة وجديدة)
+  // ✅ نحسب من كل الكاشيرات (الظاهرة حالياً + المخفية اللي لها قيمة بالمخزن)
+  // حتى لا يتغيّر الإجمالي لمجرد إخفاء كاشير — فقط يتغيّر إذا تغيّرت القيمة فعلياً
   document.querySelectorAll('#cashier-rows tr').forEach(row=>{
     const cashEl  = row.querySelector('[id$="-cash"]');
     const netEl   = row.querySelector('[id$="-net"]');
-    if(cashEl) totalCash += parseFloat(cashEl.value)||0;
-    if(netEl)  totalNet  += parseFloat(netEl.value)||0;
-    // ✅ نحفظ كل قيمة يكتبها المستخدم بمخزن مستقل، حتى لو الكاشير اختفى لاحقاً
+    // نحفظ كل قيمة يكتبها المستخدم بمخزن مستقل، حتى لو الكاشير اختفى لاحقاً
     if(cashEl){
       const m = cashEl.id.match(/^c(\d+)-cash$/);
       if(m){
         _cashierBuf[m[1]] = { cash: cashEl.value, net: netEl?.value||'' };
       }
     }
+  });
+  const _effCashiers = getEffectiveCashierValues();
+  Object.values(_effCashiers).forEach(v=>{
+    totalCash += parseFloat(v.cash)||0;
+    totalNet  += parseFloat(v.net)||0;
   });
   // إضافات ديناميكية
   let addAmt = 0;
@@ -1763,16 +1782,11 @@ function fillPrintArea(){
   const df = formatDateAr(date);
   document.getElementById('p-date').textContent = (dayName ? dayName + '، ' : '') + df;
   let cashRows='';
-  // ✅ نعتمد على الصفوف الفعلية المعروضة (كاشيرات هذا السجل/اليوم بالذات)
-  // وليس settings.activeCashiers، حتى لا يختفي كاشير قديم تم إخفاؤه لاحقاً من الإعدادات
-  const _printCashierIds=[];
-  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
-    const cashEl = row.querySelector('[id$="-cash"]');
-    if(cashEl){ const m=cashEl.id.match(/^c(\d+)-cash$/); if(m) _printCashierIds.push(parseInt(m[1])); }
-  });
-  [...new Set(_printCashierIds)].sort((a,b)=>a-b).forEach(num=>{
-    const cash=parseFloat(document.getElementById(`c${num}-cash`)?.value)||0;
-    const net=parseFloat(document.getElementById(`c${num}-net`)?.value)||0;
+  // ✅ نفس مصدر الإجمالي بالضبط: كل الكاشيرات (ظاهرة + مخفية لها قيمة) — يطابق pf-cash/pf-net دائماً
+  const _effCashiers = getEffectiveCashierValues();
+  Object.keys(_effCashiers).map(Number).sort((a,b)=>a-b).forEach(num=>{
+    const cash=parseFloat(_effCashiers[num].cash)||0;
+    const net=parseFloat(_effCashiers[num].net)||0;
     cashRows+=`<tr><td>كاشير ${num}</td><td>مبيعات الكاشير</td><td>${n(cash)}</td><td>${n(net)}</td></tr>`;
   });
   document.getElementById('p-cashier-rows').innerHTML=cashRows;
@@ -2557,7 +2571,15 @@ function importBackup(e){
       settings=Object.assign(settings,data.settings);
       records=data.records;
       saveToStorage();
+      // ✅ تصفير حالة التعديل/العرض والمخزن المؤقت، وإعادة تحميل الصفحة الحالية من البيانات المستوردة فعلياً
+      editingRecordId=null;
+      _viewingRecordId=null;
+      _cashierBuf={};
+      document.getElementById('pg-entry').classList.remove('view-locked');
+      document.getElementById('view-mode-banner').style.display='none';
+      document.getElementById('edit-mode-banner').style.display='none';
       loadSettingsUI();updateHeader();renderCashierRows();renderCashierToggles();updateInvoiceNo();renderHistory();
+      onDateChange();
       document.getElementById('ss-branch').value=settings.branchName||'';
       toast('✅ تم استرداد النسخة الاحتياطية — '+records.length+' سجل');
     }catch(err){
