@@ -705,7 +705,7 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
       <button class="btn btn-p" onclick="exportBackup()" style="flex:1">📤 تصدير البيانات</button>
       <button class="btn btn-out" onclick="document.getElementById('imp-inp').click()" style="flex:1">📥 استرداد النسخة</button>
     </div>
-    <input type="file" id="imp-inp" accept=".json" style="display:none" onchange="importBackup(event)">
+    <input type="file" id="imp-inp" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
     <p style="font-size:11px;color:var(--tl);text-align:center;margin-top:8px">التصدير يشمل جميع السجلات والإعدادات</p>
   </div>
 
@@ -1991,7 +1991,11 @@ function fillPrintArea(){
 // ============================================================
 function printPDF(){
   const date = document.getElementById('inp-date').value;
-  if(date && !editingRecordId) autoSave();
+  // ✅ نحفظ تلقائياً بكل الحالتين (إدخال جديد أو تعديل)، بنفس منطق زر مشاركة واتساب تماماً
+  if(date){
+    if(editingRecordId) saveEditRecord();
+    else autoSave();
+  }
   // ✅ إظهار parea مؤقتاً للطباعة
   const parea = document.getElementById('parea');
   fillPrintArea();
@@ -2431,23 +2435,16 @@ function saveEditRecord(){
   sessionOpeningBalance = getPrevDayBalance(date, editingRecordId);
   applyOpeningBalance();
   const vals = calc();
+  // ✅ نحفظ كل الكاشيرات (الظاهرة + المخفية اللي لها قيمة) — نفس مصدر vals.totalCash تماماً
+  // هذا يمنع تناقض لاحق: rechainRecords يعيد حساب totalCash من هذه المصفوفة تحديداً
   const cashiers = [];
-  document.querySelectorAll('#cashier-rows tr').forEach(row=>{
-    const cashEl = row.querySelector('[id$="-cash"]');
-    const netEl  = row.querySelector('[id$="-net"]');
-    if(cashEl){
-      const m = cashEl.id.match(/^c(\d+)-cash$/);
-      if(m) cashiers.push({id:parseInt(m[1]), cash:parseFloat(cashEl.value)||0, network:parseFloat(netEl?.value)||0});
-    }
+  const _effCashiers = getEffectiveCashierValues();
+  Object.keys(_effCashiers).map(Number).sort((a,b)=>a-b).forEach(id=>{
+    const v = _effCashiers[id];
+    cashiers.push({ id, cash: parseFloat(v.cash)||0, network: parseFloat(v.net)||0 });
   });
-  const payments = [];
-  for(let i=1;i<=5;i++){
-    const _row=document.getElementById(`pay-row-${i}`);
-    const no=_row?.querySelector('[id$="-no"]')?.value||'';
-    const desc=_row?.querySelector('[id$="-desc"]')?.value||'';
-    const amt=parseFloat(_row?.querySelector('[id$="-amt"]')?.value)||0;
-    if(no||desc||amt) payments.push({no,desc,amount:amt});
-  }
+  // ✅ المدفوعات: نقرأها ديناميكياً من الصفوف الفعلية (تدعم أي عدد صفوف)، بدل حلقة ثابتة كانت تفترض 5 صفوف بحد أقصى بمعرّفات ثابتة
+  const payments = getPaymentRows().map(r=>({no:r.no||'', desc:r.desc||'', amount:parseFloat(r.amt)||0}));
   const updatedRecord = {
     id: editingRecordId,
     invNo: oldInvNo,
@@ -2544,18 +2541,39 @@ function clearAll(){
 // ============================================================
 // BACKUP / RESTORE
 // ============================================================
-function exportBackup(){
+async function exportBackup(){
   const data={
     exportDate:new Date().toISOString(),
     version:'3',
     settings,
     records
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const jsonStr = JSON.stringify(data,null,2);
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `asalat-backup-${dateStr}.json`;
+
+  // ✅ بمتصفحات الهواتف: نستخدم Web Share API — يفتح قائمة حفظ/مشاركة حقيقية
+  // (نفس الطريقة اللي يستخدمها التطبيق أصلاً لمشاركة PDF بواتساب، وهي موثوقة على عكس تحميل blob المباشر)
+  try{
+    const file = new File([jsonStr], filename, {type:'application/json'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'نسخة احتياطية', text: filename});
+      toast('📤 تم تصدير النسخة الاحتياطية');
+      return;
+    }
+  }catch(err){
+    // المستخدم ألغى قائمة المشاركة — لا نظهر خطأ ولا نكمل بطريقة بديلة
+    if(err && err.name === 'AbortError') return;
+    // أي خطأ ثاني: نكمل للطريقة الاحتياطية بالأسفل
+  }
+
+  // ✅ طريقة احتياطية (تعمل بالكمبيوتر، أو لو Web Share غير مدعوم)
+  const blob=new Blob([jsonStr],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  const dateStr=new Date().toISOString().split('T')[0];
-  a.href=url;a.download=`asalat-backup-${dateStr}.json`;a.click();
+  document.body.appendChild(a);
+  a.href=url;a.download=filename;a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('📤 تم تصدير النسخة الاحتياطية');
 }
