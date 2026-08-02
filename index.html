@@ -818,6 +818,7 @@ input[type=number].cinp,input[type=number].fc{direction:ltr}
       <span class="sb-label">الدعم الفني</span>
       <span class="sb-name">م. صلاح غالب</span>
       <span class="sb-phone">0556321436</span>
+      <span style="display:block;font-size:10px;color:#9aa;margin-top:2px" dir="ltr">build 2026-08-01-v4</span>
     </div>
   </div>
   <div class="sb-right">
@@ -1431,8 +1432,11 @@ function toggleCashierPicker(num){
   } else {
     _selectedCashiers.add(num);
   }
-  // تحديث settings.activeCashiers
-  settings.activeCashiers = [..._selectedCashiers];
+  // ✅ إعداد "عدد الكاشيرات" العام يتحدّث فقط بوضع الإدخال الجديد،
+  // مو أثناء تعديل سجل قديم (حتى ما يتغيّر الإعداد الافتراضي لبقية الأيام بالغلط)
+  if(!editingRecordId && !_viewingRecordId){
+    settings.activeCashiers = [..._selectedCashiers];
+  }
   // تحديث مظهر الدوائر
   for(let i=1;i<=6;i++){
     const el = document.getElementById('picker-c-'+i);
